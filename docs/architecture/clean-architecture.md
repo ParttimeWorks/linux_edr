@@ -6,7 +6,81 @@ Linux EDR has been refactored to follow Clean Architecture principles, organizin
 
 The system is organized into four primary layers, following the dependency rule where inner layers are independent of outer layers:
 
-![Clean Architecture Diagram](../assets/clean-architecture.png)
+```mermaid
+flowchart TB
+  %% Interfaces Layer
+  subgraph Interfaces
+    direction TB
+    CLI["CLI<br/>(cli.py)"]
+    Controllers["Controllers"]
+  end
+
+  %% Application Layer
+  subgraph Application
+    direction TB
+    UseCases["Use Cases"]
+    Services["Services"]
+  end
+
+  %% Domain Layer
+  subgraph Domain
+    direction TB
+    Models["Models<br/>(Pydantic)"]
+  end
+
+  %% Infrastructure Layer
+  subgraph Infrastructure
+    direction TB
+    Repositories["Repositories"]
+    TraceReader["Trace Reader"]
+    Aggregator["Aggregator"]
+    Reporter["Reporter"]
+  end
+
+  %% Orchestration & Legacy Components
+  subgraph Orchestration & Legacy
+    direction TB
+    Scheduler["Scheduler<br/>(APScheduler)"]
+    ReportManager["ReportManager"]
+    Summary["Summary"]
+    AppCore["App<br/>(app.py)"]
+    Config["Config<br/>(config.py)"]
+    LegacyTrace["trace.py"]
+    LegacyAgg["aggregator.py"]
+    LegacySum["summary.py"]
+    LegacyRep["reporter.py"]
+    LegacyMgr["report_manager.py"]
+    LegacyModels["models.py"]
+    LegacyCLI["cli.py"]
+  end
+
+  %% Data / Control Flow
+  CLI --> Controllers
+  Controllers --> UseCases
+  UseCases --> Services
+  Services --> Models
+  Services --> Repositories
+
+  TraceReader --> Aggregator
+  Aggregator --> UseCases
+  UseCases --> Reporter
+  Reporter --> External["JSON files<br/>& OpenAI"]
+
+  Scheduler --> UseCases
+  UseCases --> ReportManager
+  ReportManager --> Summary
+  Summary --> ReportManager
+
+  AppCore --> Config
+  AppCore --> TraceReader
+  AppCore --> LegacyTrace
+  LegacyAgg --> Aggregator
+  LegacySum --> Summary
+  LegacyRep --> Reporter
+  LegacyMgr --> ReportManager
+  LegacyModels --> Models
+  LegacyCLI --> CLI
+```
 
 ### Domain Layer
 
