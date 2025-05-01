@@ -246,51 +246,6 @@ class TestReporterAdvanced(unittest.TestCase):
         self.assertIsNone(analysis)
         self.assertIsNone(severity)
 
-    @patch("builtins.open", new_callable=MagicMock)
-    @patch("linux_edr.reporter.OpenAI")
-    def test_send_llm_save_analysis(self, mock_openai, mock_open):
-        """Test that send_llm saves analysis to file when output_file is set."""
-        # Mock OpenAI client
-        mock_client = MagicMock()
-        mock_openai.return_value = mock_client
-
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Analysis result\nSeverity: 3"
-
-        mock_client.chat.completions.create.return_value = mock_response
-
-        # Create a reporter with output file
-        reporter = Reporter(api_key="test_key", output_file="test.json")
-
-        # Create a summary report
-        summary = SummaryReport(
-            report_id="test123",
-            window_start="2023-01-01T00:00:00+00:00",
-            window_end="2023-01-01T00:15:00+00:00",
-            total=5,
-            command_counts={"ls": 2, "cat": 3},
-        )
-
-        # Set up the mock_open manager to handle context manager protocol
-        mock_file = MagicMock()
-        mock_open.return_value.__enter__.return_value = mock_file
-
-        # Call send_llm
-        analysis, severity = reporter.send_llm(summary)
-
-        # Verify result
-        self.assertEqual(analysis, "Analysis result\nSeverity: 3")
-        self.assertEqual(severity, 3)
-
-        # Verify file was opened for analysis output
-        mock_open.assert_called_once_with("test.json.analysis", "a")
-
-        # Verify content was written to file
-        mock_file.write.assert_any_call(f"--- Analysis for report test123 (Severity: 3) ---\n")
-        mock_file.write.assert_any_call("Analysis result\nSeverity: 3")
-        mock_file.write.assert_any_call("\n\n")
-
 
 if __name__ == "__main__":
     unittest.main()

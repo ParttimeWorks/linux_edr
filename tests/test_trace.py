@@ -3,6 +3,7 @@ import os
 import io
 import time
 import tempfile
+import errno
 from unittest.mock import patch, MagicMock, mock_open
 from linux_edr.trace import TraceReader
 
@@ -15,12 +16,14 @@ class TestTraceReader(unittest.TestCase):
     @patch("selectors.DefaultSelector")
     def test_init_success(self, mock_selector, mock_exists, mock_open):
         """Test successful initialization of TraceReader."""
+        # Setup
         mock_exists.return_value = True
         mock_fd = 42
         mock_open.return_value = mock_fd
         mock_selector_instance = MagicMock()
         mock_selector.return_value = mock_selector_instance
 
+        # Test
         reader = TraceReader(path="/test/trace_path")
 
         # Verify the file was opened correctly
@@ -34,6 +37,7 @@ class TestTraceReader(unittest.TestCase):
     @patch("os.path.exists")
     def test_init_path_not_exists(self, mock_exists, mock_open):
         """Test initialization with a path that doesn't exist but should still try to open."""
+        # Setup
         mock_exists.return_value = False
         mock_fd = 42
         mock_open.return_value = mock_fd
@@ -69,11 +73,13 @@ class TestTraceReader(unittest.TestCase):
     @patch("selectors.DefaultSelector")
     def test_close(self, mock_selector, mock_close, mock_open):
         """Test close method properly cleans up resources."""
+        # Setup
         mock_fd = 42
         mock_open.return_value = mock_fd
         mock_selector_instance = MagicMock()
         mock_selector.return_value = mock_selector_instance
 
+        # Test
         reader = TraceReader()
         reader.close()
 
@@ -90,6 +96,7 @@ class TestTraceReader(unittest.TestCase):
     @patch("selectors.DefaultSelector")
     def test_iteration(self, mock_selector, mock_read, mock_open):
         """Test iteration over trace lines."""
+        # Setup
         mock_fd = 42
         mock_open.return_value = mock_fd
 
@@ -97,10 +104,15 @@ class TestTraceReader(unittest.TestCase):
         mock_selector_instance = MagicMock()
         mock_selector.return_value = mock_selector_instance
 
-        # Mock the select method to return some events
+        # Mock the select method to return some events then raise StopIteration
         mock_key = MagicMock()
         mock_key.fd = mock_fd
-        mock_selector_instance.select.return_value = [(mock_key, 1)]
+        mock_selector_instance.select.side_effect = [
+            [(mock_key, 1)],  # First call returns events
+            [(mock_key, 1)],  # Second call returns events
+            [(mock_key, 1)],  # Third call returns events
+            [],  # Fourth call will end the iteration
+        ]
 
         # Mock the read method to return some data then EOF
         mock_read.side_effect = [b"line1\nline2\n", b"line3\n", b""]  # EOF
@@ -109,9 +121,11 @@ class TestTraceReader(unittest.TestCase):
 
         # Use a list to collect lines from the iterator
         lines = []
+        count = 0
         for line in reader:
             lines.append(line)
-            if len(lines) >= 3:
+            count += 1
+            if count >= 3:
                 break
 
         # Verify lines were read correctly
@@ -122,6 +136,7 @@ class TestTraceReader(unittest.TestCase):
     @patch("selectors.DefaultSelector")
     def test_unicode_decode_error(self, mock_selector, mock_read, mock_open):
         """Test handling of Unicode decode errors."""
+        # Setup
         mock_fd = 42
         mock_open.return_value = mock_fd
 
@@ -130,7 +145,10 @@ class TestTraceReader(unittest.TestCase):
         mock_selector.return_value = mock_selector_instance
         mock_key = MagicMock()
         mock_key.fd = mock_fd
-        mock_selector_instance.select.return_value = [(mock_key, 1)]
+        mock_selector_instance.select.side_effect = [
+            [(mock_key, 1)],  # First call returns events
+            [],  # Second call will end the iteration
+        ]
 
         # Mock read to return invalid UTF-8
         mock_read.return_value = b"\xff\xfe Invalid UTF-8 \xfe\xff"
@@ -152,6 +170,7 @@ class TestTraceReader(unittest.TestCase):
     @patch("selectors.DefaultSelector")
     def test_eagain_handling(self, mock_selector, mock_read, mock_open):
         """Test handling of EAGAIN errors."""
+        # Setup
         mock_fd = 42
         mock_open.return_value = mock_fd
 
@@ -160,11 +179,13 @@ class TestTraceReader(unittest.TestCase):
         mock_selector.return_value = mock_selector_instance
         mock_key = MagicMock()
         mock_key.fd = mock_fd
-        mock_selector_instance.select.return_value = [(mock_key, 1)]
+        mock_selector_instance.select.side_effect = [
+            [(mock_key, 1)],  # First call returns events
+            [(mock_key, 1)],  # Second call returns events
+            [],  # Third call will end the iteration
+        ]
 
         # Mock read to raise EAGAIN once then return data
-        import errno
-
         mock_read.side_effect = [
             OSError(errno.EAGAIN, "Resource temporarily unavailable"),
             b"line1\n",

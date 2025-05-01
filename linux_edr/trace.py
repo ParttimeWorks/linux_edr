@@ -6,12 +6,6 @@ import logging
 import time
 from typing import Generator, Optional
 
-# Make mock available for tests
-import builtins as _builtins
-import unittest.mock as _unittest_mock
-
-_builtins.mock = _unittest_mock
-
 # Default path to the kernel's trace_pipe
 TRACE_PATH = "/sys/kernel/tracing/trace_pipe"
 # Maximum time to wait when reading (in seconds)
@@ -53,16 +47,11 @@ class TraceReader:
             # Open the file in non-blocking mode
             self.fd = os.open(self.path, os.O_RDONLY | os.O_NONBLOCK)
 
-            # Register the file-descriptor with the selector while gracefully
-            # handling the special mocking strategy used in the test-suite (a
-            # ``side_effect`` that takes *no* positional arguments).
+            # Register the file descriptor with the selector
             self._register_fd()
 
             logger.debug(f"Successfully opened trace pipe at {self.path}")
         except PermissionError as e:
-            # Log as *warning* rather than *error* so that callers like
-            # ``_reopen_if_needed`` can emit their own error message without
-            # inflating the error count expected by the unit-tests.
             logger.warning(
                 f"Permission denied opening {self.path}. Run with sudo or correct permissions."
             )
@@ -95,40 +84,15 @@ class TraceReader:
                 # If we exited loop without break, re-raise original error
                 raise e
         except Exception as e:
-            # Log at debug level rather than error because callers such as
-            # ``_reopen_if_needed`` will usually catch the exception and log an
-            # error with more context.  Emitting an error here would result in
-            # duplicate log records which breaks unit-tests that assert a
-            # single error call (see ``test_reopen_if_needed_with_exception``).
             logger.debug(f"Failed to open trace pipe at {self.path}: {e}")
             raise
 
     def _register_fd(self) -> None:
-        """Register *self.fd* for read-events, coping with mocked selectors.
-
-        The real :py:meth:`selectors.BaseSelector.register` method expects two
-        positional arguments: *fileobj* and *events*.  In the unit-tests we
-        monkey-patch this method so that its ``side_effect`` has a signature
-        that takes **no** positional arguments and uses the call itself as a
-        trigger to raise :pyclass:`StopIteration` to abort execution once the
-        desired number of registrations has occurred.
-
-        Invoking that mock with the usual positional arguments would raise a
-        ``TypeError`` which surfaces as a test failure.  To stay compatible
-        with both real selectors and the mocked version we attempt the call in
-        the normal way first and fall back to a no-argument invocation if a
-        ``TypeError`` is encountered.
-        """
+        """Register the file descriptor for read events."""
         if self.fd is None:
             return
-
-        try:
-            self.sel.register(self.fd, selectors.EVENT_READ)
-        except TypeError:
-            # Mocked selector in the test-suite – retry without arguments so
-            # the mock can run its "side_effect" without complaining about the
-            # unexpected parameters.
-            self.sel.register()
+            
+        self.sel.register(self.fd, selectors.EVENT_READ)
 
     def _reopen_if_needed(self) -> bool:
         """
@@ -219,17 +183,8 @@ class TraceReader:
                                 logger.error(f"OS Error reading from trace pipe: {e}")
                                 self._reopen_if_needed()
                                 return
-                except StopIteration:
-                    # Propagate a StopIteration raised by the selector (used by
-                    # the test-suite to exit the generator cleanly).
-                    logger.info("Trace reader stopping due to StopIteration signal from selector")
-                    return
                 except Exception as e:
-                    # Any other unexpected error – log once, pause briefly to
-                    # avoid a tight error loop, then continue trying.  This
-                    # behaviour is exercised in the unit tests which patch
-                    # ``DefaultSelector.select`` to raise an arbitrary
-                    # ``Exception`` followed by ``StopIteration``.
+                    # Any unexpected error – log, pause briefly to avoid tight error loops, then retry
                     logger.error(f"Unexpected error in trace reader: {e}")
                     time.sleep(1)
                     continue

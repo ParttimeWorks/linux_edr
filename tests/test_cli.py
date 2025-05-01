@@ -25,7 +25,7 @@ class TestCLI(unittest.TestCase):
 
         # Verify LinuxEDRApp was initialized with default parameters
         mock_app_class.assert_called_once_with(
-            config_path=None, interval=None, output_file=None, debug=None
+            config_path=None, interval=None, debug=None
         )
 
         # Verify the app's run method was called
@@ -47,8 +47,6 @@ class TestCLI(unittest.TestCase):
                 "custom_config.ini",
                 "--interval",
                 "30",
-                "--output",
-                "output.json",
                 "--debug",
             ],
         )
@@ -58,7 +56,7 @@ class TestCLI(unittest.TestCase):
 
         # Verify LinuxEDRApp was initialized with the provided parameters
         mock_app_class.assert_called_once_with(
-            config_path="custom_config.ini", interval=30, output_file="output.json", debug=True
+            config_path="custom_config.ini", interval=30, debug=True
         )
 
         # Verify the app's run method was called
