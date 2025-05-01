@@ -35,8 +35,11 @@ uv pip install git+https://github.com/ParttimeWorks/linux_edr.git@v1.0.0
 ## Usage
 
 ```bash
-# Basic monitoring with default settings
+# Basic monitoring with default settings (requires root)
 sudo uv run python -m linux_edr.cli run
+
+# Run in debug mode to see detailed event logs
+sudo uv run python -m linux_edr.cli run --debug
 
 # Custom interval and output file
 sudo uv run python -m linux_edr.cli run --interval 5 --output events.jsonl
@@ -47,6 +50,23 @@ sudo uv run python -m linux_edr.cli run --config /etc/linux_edr/custom.ini
 # Show current configuration
 sudo uv run python -m linux_edr.cli show-config
 ```
+
+### Standard Run Mode
+
+When run in standard mode, the tool will:
+1. Enable syscall tracing for configured events (execve, fork, clone, connect by default)
+2. Initialize the scheduler with the configured interval
+3. Start monitoring in the background
+4. Display minimal output
+
+### Debug Run Mode
+
+In debug mode, the tool will:
+1. Provide more detailed output during initialization
+2. Show each raw event as it's captured
+3. Display more information about scheduler operations
+
+This is useful for troubleshooting or understanding what data is being collected.
 
 ## Data Structure
 
@@ -85,9 +105,6 @@ model = gpt-4o-mini
 # Enable debug logging (true/false)
 debug = false
 
-# Path to save JSON reports (empty for no file output)
-output_file = 
-
 [OPENAI]
 # Your OpenAI API key (or leave empty to use environment variable)
 api_key = 
@@ -105,6 +122,18 @@ max_summary_lines = 50
 
 # Whether to include raw event data in reports (true/false)
 include_raw_events = true
+
+# Whether to include security findings in reports (true/false)
+include_security_findings = true
+
+# Whether to log verbose raw event data in debug mode (true/false)
+verbose_debug_logging = true
+
+# Whether to enable syscall tracing (true/false)
+enable_syscall_tracing = true
+
+# Comma-separated list of syscalls to trace (enter and exit events will be enabled)
+syscalls_to_trace = execve,fork,clone,connect
 ```
 
 ## Hierarchical Reporting Architecture
