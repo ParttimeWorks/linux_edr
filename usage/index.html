@@ -544,6 +544,39 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Running the Monitor">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#standard-run-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      Standard Run Mode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#debug-run-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      Debug Run Mode
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration File
+    </span>
+  </a>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1385,54 +1418,130 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Basic monitoring with default settings (requires root)</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>sudo<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>linux_edr.cli<span class="w"> </span>run
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Custom 5-minute reporting interval and save reports to a file</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>sudo<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>linux_edr.cli<span class="w"> </span>run<span class="w"> </span>--interval<span class="w"> </span><span class="m">5</span><span class="w"> </span>--output<span class="w"> </span>/var/log/linux-edr-events.jsonl
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Run in debug mode to see detailed event logs</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>sudo<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>linux_edr.cli<span class="w"> </span>run<span class="w"> </span>--debug
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Use a specific configuration file</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>sudo<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>linux_edr.cli<span class="w"> </span>run<span class="w"> </span>--config<span class="w"> </span>/etc/linux_edr/my_config.ini
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Custom 5-minute reporting interval and save reports to a file</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>sudo<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>linux_edr.cli<span class="w"> </span>run<span class="w"> </span>--interval<span class="w"> </span><span class="m">5</span><span class="w"> </span>--output<span class="w"> </span>/var/log/linux-edr-events.jsonl
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># Use a specific configuration file</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>sudo<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>linux_edr.cli<span class="w"> </span>run<span class="w"> </span>--config<span class="w"> </span>/etc/linux_edr/my_config.ini
 </code></pre></div>
+<h3 id="standard-run-mode">Standard Run Mode<a class="headerlink" href="#standard-run-mode" title="Permanent link">&para;</a></h3>
+<p>When run in standard mode, the tool will:
+1. Enable syscall tracing for configured events (execve, fork, clone, connect by default)
+2. Initialize the scheduler with the configured interval
+3. Start monitoring in the background
+4. Display minimal output</p>
+<p>Example output:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Enabling ftrace event: /sys/kernel/tracing/events/syscalls/sys_enter_execve/enable
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>Enabling ftrace event: /sys/kernel/tracing/events/syscalls/sys_exit_execve/enable
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>Enabling ftrace event: /sys/kernel/tracing/events/syscalls/sys_enter_fork/enable
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>Enabling ftrace event: /sys/kernel/tracing/events/syscalls/sys_exit_fork/enable
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>Enabling ftrace event: /sys/kernel/tracing/events/syscalls/sys_enter_clone/enable
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>Enabling ftrace event: /sys/kernel/tracing/events/syscalls/sys_exit_clone/enable
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>Enabling ftrace event: /sys/kernel/tracing/events/syscalls/sys_enter_connect/enable
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>Enabling ftrace event: /sys/kernel/tracing/events/syscalls/sys_exit_connect/enable
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>Successfully enabled 8 syscall trace events
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>Adding job tentatively -- it will be properly scheduled when the scheduler starts
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>Linux EDR initialized with interval=15m
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>Added job &quot;LinuxEDRApp._summarize&quot; to job store &quot;default&quot;
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>Scheduler started
+</code></pre></div></p>
+<h3 id="debug-run-mode">Debug Run Mode<a class="headerlink" href="#debug-run-mode" title="Permanent link">&para;</a></h3>
+<p>In debug mode, the tool will:
+1. Provide more detailed output during initialization
+2. Show each raw event as it's captured
+3. Display more information about scheduler operations</p>
+<p>This is useful for troubleshooting or understanding what data is being collected.</p>
+<h2 id="configuration-file">Configuration File<a class="headerlink" href="#configuration-file" title="Permanent link">&para;</a></h2>
+<p>Linux EDR uses a <code>config.ini</code> file with the following sections and options:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[DEFAULT]</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># Path to the kernel trace_pipe</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="na">trace_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/sys/kernel/tracing/trace_pipe</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># Report generation interval in minutes</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="na">report_interval</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">15</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1"># LLM model to use</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="na">model</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">gpt-4o-mini</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="c1"># Enable debug logging (true/false)</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="na">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">false</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="k">[OPENAI]</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="c1"># Your OpenAI API key (or leave empty to use environment variable)</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="na">api_key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="k">[REPORTS]</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="c1"># Directory to store hierarchical reports</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="na">reports_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">reports</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="k">[ADVANCED]</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="c1"># Maximum number of events to store before generating an interim report</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="na">max_events_buffer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">10000</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="c1"># Maximum number of summary lines to include in LLM prompt</span>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="na">max_summary_lines</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">50</span>
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="c1"># Whether to include raw event data in reports (true/false)</span>
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="na">include_raw_events</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span><span class="w"> </span>
+<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>
+<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a><span class="c1"># Whether to include security findings in reports (true/false)</span>
+<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a><span class="na">include_security_findings</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+<a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a>
+<a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a><span class="c1"># Whether to log verbose raw event data in debug mode (true/false)</span>
+<a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a><span class="na">verbose_debug_logging</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+<a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a>
+<a id="__codelineno-2-38" name="__codelineno-2-38" href="#__codelineno-2-38"></a><span class="c1"># Whether to enable syscall tracing (true/false)</span>
+<a id="__codelineno-2-39" name="__codelineno-2-39" href="#__codelineno-2-39"></a><span class="na">enable_syscall_tracing</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+<a id="__codelineno-2-40" name="__codelineno-2-40" href="#__codelineno-2-40"></a>
+<a id="__codelineno-2-41" name="__codelineno-2-41" href="#__codelineno-2-41"></a><span class="c1"># Comma-separated list of syscalls to trace (enter and exit events will be enabled)</span>
+<a id="__codelineno-2-42" name="__codelineno-2-42" href="#__codelineno-2-42"></a><span class="na">syscalls_to_trace</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">execve,fork,clone,connect</span>
+</code></pre></div>
+<p>You can customize this file and specify its location using the <code>--config</code> parameter when running the tool.</p>
 <h2 id="viewing-configuration">Viewing Configuration<a class="headerlink" href="#viewing-configuration" title="Permanent link">&para;</a></h2>
 <p>To see the effective configuration (after loading defaults, file settings, and command-line overrides):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>sudo<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>linux_edr.cli<span class="w"> </span>show-config
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># View configuration based on a specific file</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>sudo<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>linux_edr.cli<span class="w"> </span>show-config<span class="w"> </span>--config<span class="w"> </span>/etc/linux_edr/my_config.ini
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>sudo<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>linux_edr.cli<span class="w"> </span>show-config
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># View configuration based on a specific file</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>sudo<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>linux_edr.cli<span class="w"> </span>show-config<span class="w"> </span>--config<span class="w"> </span>/etc/linux_edr/my_config.ini
 </code></pre></div>
 <h2 id="running-as-a-systemd-service">Running as a Systemd Service<a class="headerlink" href="#running-as-a-systemd-service" title="Permanent link">&para;</a></h2>
 <p>Linux EDR can be run as a systemd service for continuous background monitoring:</p>
 <ol>
 <li>
 <p><strong>Copy the service file:</strong>
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>sudo<span class="w"> </span>cp<span class="w"> </span>linux-edr.service<span class="w"> </span>/etc/systemd/system/
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>sudo<span class="w"> </span>cp<span class="w"> </span>linux-edr.service<span class="w"> </span>/etc/systemd/system/
 </code></pre></div>
     <em>(Note: The service file is configured to use <code>uv run python -m linux_edr.cli run</code> command)</em></p>
 </li>
 <li>
 <p><strong>Create log directory</strong> (if needed by your service configuration):
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>sudo<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/var/log/linux-edr
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>sudo<span class="w"> </span>chown<span class="w"> </span>&lt;user&gt;:&lt;group&gt;<span class="w"> </span>/var/log/linux-edr<span class="w"> </span><span class="c1"># Adjust user/group as needed</span>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>sudo<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/var/log/linux-edr
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>sudo<span class="w"> </span>chown<span class="w"> </span>&lt;user&gt;:&lt;group&gt;<span class="w"> </span>/var/log/linux-edr<span class="w"> </span><span class="c1"># Adjust user/group as needed</span>
 </code></pre></div></p>
 </li>
 <li>
 <p><strong>Ensure uv is installed system-wide and available at /usr/bin/uv:</strong>
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>sudo<span class="w"> </span>ln<span class="w"> </span>-sf<span class="w"> </span><span class="k">$(</span>which<span class="w"> </span>uv<span class="k">)</span><span class="w"> </span>/usr/bin/uv<span class="w"> </span><span class="c1"># Create symlink if necessary</span>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>sudo<span class="w"> </span>ln<span class="w"> </span>-sf<span class="w"> </span><span class="k">$(</span>which<span class="w"> </span>uv<span class="k">)</span><span class="w"> </span>/usr/bin/uv<span class="w"> </span><span class="c1"># Create symlink if necessary</span>
 </code></pre></div></p>
 </li>
 <li>
 <p><strong>Reload systemd, enable and start the service:</strong>
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>linux-edr.service
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>linux-edr.service
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>linux-edr.service
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>linux-edr.service
 </code></pre></div></p>
 </li>
 <li>
 <p><strong>Check service status:</strong>
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>status<span class="w"> </span>linux-edr.service
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>status<span class="w"> </span>linux-edr.service
 </code></pre></div></p>
 </li>
 <li>
 <p><strong>View service logs:</strong>
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>sudo<span class="w"> </span>journalctl<span class="w"> </span>-u<span class="w"> </span>linux-edr.service<span class="w"> </span>-f
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>sudo<span class="w"> </span>journalctl<span class="w"> </span>-u<span class="w"> </span>linux-edr.service<span class="w"> </span>-f
 </code></pre></div></p>
 </li>
 </ol>
@@ -1458,7 +1567,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 1, 2025 14:43:10">May 1, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 1, 2025 18:57:21">May 1, 2025</span>
   </span>
 
     
