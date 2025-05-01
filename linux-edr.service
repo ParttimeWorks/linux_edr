@@ -4,9 +4,20 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
+User=linux-edr
+Group=linux-edr
+Environment="PYTHONUNBUFFERED=1"
+Environment="PATH=/opt/linux-edr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+WorkingDirectory=/opt/linux-edr
 ExecStartPre=/bin/sh -c 'echo 1 > /sys/kernel/tracing/events/syscalls/sys_enter_execve/enable'
-ExecStart=/usr/bin/uv run python -m linux_edr.cli run --output /var/log/linux-edr/reports.jsonl
+ExecStartPre=/bin/sh -c 'echo 1 > /sys/kernel/tracing/events/syscalls/sys_exit_execve/enable'
+ExecStartPre=/bin/sh -c 'echo 1 > /sys/kernel/tracing/events/syscalls/sys_enter_fork/enable'
+ExecStartPre=/bin/sh -c 'echo 1 > /sys/kernel/tracing/events/syscalls/sys_exit_fork/enable'
+ExecStartPre=/bin/sh -c 'echo 1 > /sys/kernel/tracing/events/syscalls/sys_enter_clone/enable'
+ExecStartPre=/bin/sh -c 'echo 1 > /sys/kernel/tracing/events/syscalls/sys_exit_clone/enable'
+ExecStartPre=/bin/sh -c 'echo 1 > /sys/kernel/tracing/events/syscalls/sys_enter_connect/enable'
+ExecStartPre=/bin/sh -c 'echo 1 > /sys/kernel/tracing/events/syscalls/sys_exit_connect/enable'
+ExecStart=uv run python -m linux_edr.cli run --output /var/log/linux-edr/reports.jsonl
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
@@ -14,9 +25,11 @@ StandardError=journal
 
 # Security hardening
 ProtectSystem=full
-ReadWritePaths=/var/log/linux-edr
+ReadWritePaths=/var/log/linux-edr /etc/linux_edr /opt/linux-edr
 PrivateTmp=true
-NoNewPrivileges=true
+NoNewPrivileges=false
+CapabilityBoundingSet=CAP_DAC_OVERRIDE CAP_SYS_ADMIN
+AmbientCapabilities=CAP_DAC_OVERRIDE CAP_SYS_ADMIN
 
 [Install]
 WantedBy=multi-user.target 
