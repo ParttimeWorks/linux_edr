@@ -21,13 +21,13 @@ Linux EDR captures process execution data through Linux's kernel tracing capabil
 
 ```bash
 # Run with default settings (requires root permissions)
-sudo linux-edr run
+sudo uv run python -m linux_edr.cli run
 
 # Monitor with 5-minute report interval
-sudo linux-edr run --interval 5
+sudo uv run python -m linux_edr.cli run --interval 5
 
 # Save reports to file
-sudo linux-edr run --output /var/log/linux-edr.jsonl
+sudo uv run python -m linux_edr.cli run --output /var/log/linux-edr.jsonl
 ```
 
 ## Architecture

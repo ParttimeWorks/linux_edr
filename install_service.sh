@@ -9,11 +9,22 @@ fi
 
 echo "Installing Linux EDR service..."
 
-# Install the Python package if not already installed
-pip show linux-edr > /dev/null 2>&1 || {
-  echo "Installing Linux EDR Python package..."
-  pip install .
-}
+# Check if uv is installed
+if ! command -v uv &> /dev/null; then
+  echo "Error: 'uv' is required but not found. Please install uv first."
+  echo "Visit: https://github.com/astral-sh/uv"
+  exit 1
+fi
+
+# Create symlink to uv in /usr/bin if it doesn't exist
+if [ ! -f /usr/bin/uv ]; then
+  echo "Creating symlink for uv in /usr/bin..."
+  ln -sf $(which uv) /usr/bin/uv
+fi
+
+# Install the Python package in development mode
+echo "Installing Linux EDR Python package..."
+uv pip install -e .
 
 # Create log directory
 echo "Creating log directory..."

@@ -36,16 +36,16 @@ uv pip install git+https://github.com/ParttimeWorks/linux_edr.git@v1.0.0
 
 ```bash
 # Basic monitoring with default settings
-linux-edr run
+sudo uv run python -m linux_edr.cli run
 
 # Custom interval and output file
-linux-edr run --interval 5 --output events.jsonl
+sudo uv run python -m linux_edr.cli run --interval 5 --output events.jsonl
 
 # Using a specific configuration file
-linux-edr run --config /etc/linux_edr/custom.ini
+sudo uv run python -m linux_edr.cli run --config /etc/linux_edr/custom.ini
 
 # Show current configuration
-linux-edr show-config
+sudo uv run python -m linux_edr.cli show-config
 ```
 
 ## Data Structure
