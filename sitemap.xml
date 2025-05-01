@@ -5,7 +5,59 @@
          <lastmod>2025-05-01</lastmod>
     </url>
     <url>
+         <loc>https://github.com/ParttimeWorks/linux_edr/configuration/</loc>
+         <lastmod>2025-05-01</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/ParttimeWorks/linux_edr/development/</loc>
+         <lastmod>2025-05-01</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/ParttimeWorks/linux_edr/installation/</loc>
+         <lastmod>2025-05-01</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/ParttimeWorks/linux_edr/privacy/</loc>
+         <lastmod>2025-05-01</lastmod>
+    </url>
+    <url>
          <loc>https://github.com/ParttimeWorks/linux_edr/reporting/</loc>
+         <lastmod>2025-05-01</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/ParttimeWorks/linux_edr/usage/</loc>
+         <lastmod>2025-05-01</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/ParttimeWorks/linux_edr/api/aggregator/</loc>
+         <lastmod>2025-05-01</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/ParttimeWorks/linux_edr/api/models/</loc>
+         <lastmod>2025-05-01</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/ParttimeWorks/linux_edr/api/report_manager/</loc>
+         <lastmod>2025-05-01</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/ParttimeWorks/linux_edr/api/reporter/</loc>
+         <lastmod>2025-05-01</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/ParttimeWorks/linux_edr/api/trace/</loc>
+         <lastmod>2025-05-01</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/ParttimeWorks/linux_edr/architecture/ai-analysis/</loc>
+         <lastmod>2025-05-01</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/ParttimeWorks/linux_edr/architecture/overview/</loc>
+         <lastmod>2025-05-01</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/ParttimeWorks/linux_edr/architecture/reporting/</loc>
          <lastmod>2025-05-01</lastmod>
     </url>
 </urlset>
