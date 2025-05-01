@@ -1,0 +1,51 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+  schedule:
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install uv
+        run: |
+          pip install uv
+      - name: Install dependencies
+        run: |
+          uv pip install --system pytest pytest-cov pytest-timeout mypy types-setuptools
+          uv pip install --system -e .
+      - name: Run mypy static type checking
+        run: |
+          mypy linux_edr/
+      - name: Test with pytest
+        run: |
+          pytest --cov=linux_edr --cov-report=xml --timeout=60
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+      - name: Check test coverage
+        run: |
+          coverage=$(python -c "import xml.etree.ElementTree as ET; tree = ET.parse('coverage.xml'); root = tree.getroot(); print(float(root.get('line-rate')) * 100)")
+          echo "Coverage: $coverage%"
+          if (( $(echo "$coverage < 80" | bc -l) )); then
+            echo "Test coverage below 80%. Please add more tests."
+            exit 1
+          fi 

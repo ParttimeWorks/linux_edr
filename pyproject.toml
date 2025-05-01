@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "linux-edr"
+version = "0.1.0"
+description = "Endpoint Detection and Response for Linux systems"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Linux EDR Team", email = "example@example.com"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Security",
+]
+dependencies = [
+    "typer>=0.9.0",
+    "pydantic>=2.0.0",
+    "apscheduler>=3.10.0",
+    "openai>=1.0.0",
+    "configparser>=5.0.0",
+    "psutil>=5.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0",
+    "black>=22.0.0",
+    "isort>=5.10.0",
+    "mypy>=0.950",
+    "mkdocs>=1.3.0",
+    "mkdocs-material>=8.2.0",
+    "mkdocstrings>=0.19.0",
+]
+
+[project.scripts]
+linux-edr = "linux_edr.cli:app"
+
+[project.urls]
+"Homepage" = "https://github.com/yourusername/linux-edr"
+"Bug Tracker" = "https://github.com/yourusername/linux-edr/issues"
+
+[tool.setuptools]
+packages = ["linux_edr"]
+
+[tool.black]
+line-length = 100
+target-version = ["py38"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.8"
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unreachable = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true 

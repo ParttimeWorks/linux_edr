@@ -1,0 +1,206 @@
+import unittest
+import os
+import tempfile
+import logging
+from unittest.mock import patch, MagicMock, mock_open
+from linux_edr.app import process_raw_events, parse_execve, setup_logging, LinuxEDRApp, ExecveEvent
+
+class TestApp(unittest.TestCase):
+
+    def test_process_raw_events(self):
+        # Test data with multiple execve events for different processes
+        raw_events = [
+            {"command": "ls", "args": ["-la", "/tmp"], "pid": 1000, "timestamp": "123456"},
+            {"command": "ls", "args": ["/home"], "pid": 1001, "timestamp": "123457"},
+            {"command": "cat", "args": ["/etc/passwd"], "pid": 1002, "timestamp": "123458"},
+            {"command": "grep", "args": ["user", "/etc/passwd"], "pid": 1003, "timestamp": "123459"},
+            {"command": "cat", "args": ["/etc/hosts"], "pid": 1004, "timestamp": "123460"},
+        ]
+        
+        # Process the events
+        result = process_raw_events(raw_events)
+        
+        # Verify the structure and content
+        self.assertIn("ls", result)
+        self.assertIn("cat", result)
+        self.assertIn("grep", result)
+        
+        # Check correct count of commands per process
+        self.assertEqual(len(result["ls"]), 2)
+        self.assertEqual(len(result["cat"]), 2)
+        self.assertEqual(len(result["grep"]), 1)
+        
+        # Verify command lines are correctly formed
+        self.assertIn("ls -la /tmp", result["ls"])
+        self.assertIn("ls /home", result["ls"])
+        self.assertIn("cat /etc/passwd", result["cat"])
+        self.assertIn("cat /etc/hosts", result["cat"])
+        self.assertIn("grep user /etc/passwd", result["grep"])
+        
+    def test_process_raw_events_empty(self):
+        # Test with empty input
+        result = process_raw_events([])
+        self.assertEqual(result, {})
+        
+    def test_process_raw_events_no_args(self):
+        # Test with commands having no arguments
+        raw_events = [
+            {"command": "ls", "pid": 1000, "timestamp": "123456"},
+            {"command": "bash", "pid": 1001, "timestamp": "123457"},
+        ]
+        
+        result = process_raw_events(raw_events)
+        
+        self.assertIn("ls", result)
+        self.assertIn("bash", result)
+        self.assertEqual(result["ls"], ["ls"])
+        self.assertEqual(result["bash"], ["bash"])
+
+    def test_process_raw_events_error_handling(self):
+        # Test with invalid events that should be handled gracefully
+        raw_events = [
+            {"not_command": "this_should_be_skipped"},
+            {"command": "ls", "args": ["-la"], "pid": 1000},
+            {"command": None},  # This should be skipped
+            {"command": "grep", "args": "not-a-list"},  # Non-list args should be handled
+        ]
+        
+        result = process_raw_events(raw_events)
+        
+        # Should only have valid commands
+        self.assertIn("ls", result)
+        self.assertIn("grep", result)
+        self.assertEqual(len(result), 2)
+        
+        # Just verify grep command is handled in some way
+        self.assertTrue(len(result["grep"]) > 0)
+        self.assertTrue(result["grep"][0].startswith("grep"))
+    
+    @patch('logging.config.dictConfig')
+    def test_setup_logging_debug(self, mock_dict_config):
+        # Test setup_logging with debug=True
+        setup_logging(debug=True)
+        
+        # Verify dictConfig was called with expected configuration
+        config = mock_dict_config.call_args[0][0]
+        self.assertEqual(config["root"]["level"], "DEBUG")
+    
+    @patch('logging.config.dictConfig')
+    def test_setup_logging_info(self, mock_dict_config):
+        # Test setup_logging with debug=False
+        setup_logging(debug=False)
+        
+        # Verify dictConfig was called with expected configuration
+        config = mock_dict_config.call_args[0][0]
+        self.assertEqual(config["root"]["level"], "INFO")
+
+    @patch('linux_edr.app.Config')
+    @patch('linux_edr.app.setup_logging')
+    @patch('linux_edr.app.TraceReader')
+    @patch('linux_edr.app.Aggregator')
+    @patch('linux_edr.app.Reporter')
+    @patch('linux_edr.app.ReportManager')
+    @patch('linux_edr.app.BackgroundScheduler')
+    def test_linux_edr_app_init(self, mock_scheduler, mock_report_manager, mock_reporter, 
+                           mock_aggregator, mock_trace_reader, mock_setup_logging, mock_config):
+        # Setup mocks
+        mock_config_instance = mock_config.return_value
+        mock_config_instance.get.side_effect = lambda section, option, default=None: {
+            ("DEFAULT", "report_interval"): 30,
+            ("DEFAULT", "output_file"): "test.json",
+            ("DEFAULT", "debug"): True,
+            ("DEFAULT", "trace_path"): "/test/trace",
+            ("ADVANCED", "max_events_buffer"): 5000,
+            ("OPENAI", "api_key"): "test_key",
+            ("DEFAULT", "model"): "test-model",
+            ("REPORTS", "reports_dir"): "test_reports"
+        }.get((section, option), default)
+        
+        # Create LinuxEDRApp instance
+        app = LinuxEDRApp(config_path="test_config.ini")
+        
+        # Verify config was loaded
+        mock_config.assert_called_once_with("test_config.ini")
+        
+        # Verify logging was set up
+        mock_setup_logging.assert_called_once_with(True)
+        
+        # Verify components were initialized correctly
+        mock_trace_reader.assert_called_once_with(path="/test/trace")
+        mock_aggregator.assert_called_once_with(maxlen=5000)
+        mock_reporter.assert_called_once_with(api_key="test_key", output_file="test.json", model="test-model")
+        mock_report_manager.assert_called_once_with("test_reports")
+        
+        # Verify scheduler was configured
+        mock_scheduler_instance = mock_scheduler.return_value
+        mock_scheduler_instance.add_job.assert_called_once()
+
+    @patch('linux_edr.app.Config')
+    @patch('linux_edr.app.setup_logging')
+    @patch('linux_edr.app.TraceReader')
+    @patch('linux_edr.app.Aggregator')
+    @patch('linux_edr.app.Reporter')
+    @patch('linux_edr.app.ReportManager')
+    @patch('linux_edr.app.BackgroundScheduler')
+    def test_linux_edr_app_cli_override(self, mock_scheduler, mock_report_manager, 
+                                   mock_reporter, mock_aggregator, mock_trace_reader, 
+                                   mock_setup_logging, mock_config):
+        # Setup mocks
+        mock_config_instance = mock_config.return_value
+        mock_config_instance.get.side_effect = lambda section, option, default=None: {
+            ("DEFAULT", "report_interval"): 30,
+            ("DEFAULT", "output_file"): "default.json",
+            ("DEFAULT", "debug"): False,
+            ("DEFAULT", "trace_path"): "/default/trace",
+            ("ADVANCED", "max_events_buffer"): 5000,
+            ("OPENAI", "api_key"): "default_key",
+            ("DEFAULT", "model"): "default-model",
+            ("REPORTS", "reports_dir"): "default_reports"
+        }.get((section, option), default)
+        
+        # Create LinuxEDRApp with CLI overrides
+        app = LinuxEDRApp(
+            config_path="test_config.ini",
+            interval=15,
+            output_file="cli.json",
+            debug=True
+        )
+        
+        # Verify CLI args override config values
+        self.assertEqual(app.interval, 15)
+        self.assertEqual(app.output_file, "cli.json")
+        self.assertEqual(app.debug, True)
+        
+        # Verify logging was set up with overridden debug value
+        mock_setup_logging.assert_called_once_with(True)
+
+    @patch('os.path.exists')
+    @patch('linux_edr.app.Config')
+    @patch('linux_edr.app.setup_logging')
+    @patch('linux_edr.app.TraceReader')
+    @patch('linux_edr.app.Aggregator')
+    @patch('linux_edr.app.Reporter')
+    @patch('linux_edr.app.ReportManager')
+    @patch('linux_edr.app.BackgroundScheduler')
+    def test_trace_path_warning(self, mock_scheduler, mock_report_manager, mock_reporter,
+                           mock_aggregator, mock_trace_reader, mock_setup_logging, 
+                           mock_config, mock_exists):
+        # Setup mocks
+        mock_config_instance = mock_config.return_value
+        mock_config_instance.get.side_effect = lambda section, option, default=None: {
+            ("DEFAULT", "trace_path"): "/nonexistent/trace",
+            ("ADVANCED", "max_events_buffer"): 5000,
+        }.get((section, option), default)
+        
+        # Make os.path.exists return False
+        mock_exists.return_value = False
+        
+        # Create LinuxEDRApp
+        with self.assertLogs(level='WARNING') as cm:
+            app = LinuxEDRApp()
+            
+            # Verify warning was logged
+            self.assertTrue(any("does not exist" in log for log in cm.output))
+
+if __name__ == "__main__":
+    unittest.main() 

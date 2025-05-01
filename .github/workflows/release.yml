@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  schedule:
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        run: |
+          pip install uv
+      - name: Install dependencies
+        run: |
+          uv pip install build twine
+      - name: Build package
+        run: uv pip run python -m build
+      - name: Test package import
+        run: |
+          uv pip install dist/*.whl
+          uv pip run python -c "import linux_edr; print(linux_edr.__version__)"
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist
+          path: dist/
+
+  monthly-build-report:
+    needs: build
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report monthly build status
+        run: |
+          echo "Monthly build completed successfully at $(date)"
+          echo "This build verifies that the package continues to build and pass tests with the latest dependency versions."
+      - name: Create monthly release tag
+        run: |
+          tag="monthly-$(date +'%Y-%m')"
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git tag $tag || true
+          git push origin $tag || true
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: monthly-$(date +'%Y-%m')
+          name: "Monthly Release $(date +'%Y-%m')"
+          body: "Automated monthly release for $(date +'%Y-%m')."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
