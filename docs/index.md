@@ -1,15 +1,21 @@
-# Linux EDR Documentation
+# Welcome to Linux EDR
 
-A lightweight Endpoint Detection and Response (EDR) tool for Linux systems.
+A lightweight yet comprehensive Endpoint Detection and Response (EDR) solution for Linux systems that monitors command execution, analyzes system behavior, and provides actionable security insights with minimal performance impact.
 
 ## Overview
 
-Linux EDR monitors system activity by reading ftrace events and detecting suspicious patterns. It uses:
+Linux EDR captures process execution data through Linux's kernel tracing capabilities and builds a multi-tiered reporting structure that allows for both real-time threat detection and long-term security trend analysis. By focusing on command execution patterns, it provides valuable security insights without the overhead of traditional EDR solutions.
 
-- Non-blocking I/O for efficient trace reading
-- Thread-safe event aggregation
-- Scheduled reporting and summarization
-- Optional AI-powered analysis via OpenAI
+## Key Features
+
+- **Efficient Monitoring**: Non-blocking trace reader for `/sys/kernel/tracing/trace_pipe` with automatic recovery
+- **Scalable Architecture**: Thread-safe event buffer with configurable capacity and age limits
+- **Smart Data Organization**: Process-focused event collection and intelligent command grouping
+- **Hierarchical Reporting**: Tiered reports from 15-minute snapshots to monthly trend analysis
+- **AI-Enhanced Security**: OpenAI integration with gpt-4o-mini for automated threat detection
+- **Flexible Output**: Configurable reporting to JSON files or console
+- **Production-Ready**: Comprehensive error handling with graceful recovery from failures
+- **Privacy-Focused**: Collects only necessary command execution data (see [Privacy Policy](privacy.md))
 
 ## Installation
 
