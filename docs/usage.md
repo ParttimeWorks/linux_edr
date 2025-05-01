@@ -118,6 +118,50 @@ sudo uv run python -m linux_edr.cli show-config --config /etc/linux_edr/my_confi
 
 Linux EDR can be run as a systemd service for continuous background monitoring:
 
+### Automated Installation
+
+The easiest way to install Linux EDR as a systemd service is to use the provided installation script:
+
+```bash
+# Install Linux EDR as a systemd service (requires root)
+sudo ./install_service.sh
+```
+
+The script will:
+- Create the linux-edr service user
+- Set up a virtual environment in /opt/linux-edr
+- Create necessary log and configuration directories with proper permissions
+- Install the Linux EDR Python package
+- Copy and configure the systemd service file
+- Prompt for an OpenAI API key (optional)
+
+After installation, start and enable the service:
+
+```bash
+sudo systemctl enable linux-edr.service
+sudo systemctl start linux-edr.service
+```
+
+### Uninstalling the Service
+
+To completely remove Linux EDR, use the uninstallation script:
+
+```bash
+# Uninstall Linux EDR and clean up all related files (requires root)
+sudo ./uninstall_service.sh
+```
+
+The script will:
+- Stop and disable the service
+- Remove the systemd service file
+- Delete the virtual environment
+- Clean up log directories and configuration files
+- Remove the service user
+
+### Manual Installation (Alternative)
+
+If you prefer to install the service manually:
+
 1.  **Copy the service file:**
     ```bash
     sudo cp linux-edr.service /etc/systemd/system/

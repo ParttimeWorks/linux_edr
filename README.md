@@ -155,29 +155,29 @@ All reports are automatically stored in JSON format in the configured `reports_d
 
 ## Systemd Service
 
-Linux EDR can be deployed as a systemd service for continuous monitoring:
+Linux EDR can be installed as a systemd service for automatic startup and management:
 
-1. Copy the service file to systemd directory:
-   ```bash
-   sudo cp linux-edr.service /etc/systemd/system/
-   ```
+```bash
+# Install as a systemd service (requires root)
+sudo ./install_service.sh
 
-2. Create log directory:
-   ```bash
-   sudo mkdir -p /var/log/linux-edr
-   ```
+# Start and enable the service
+sudo systemctl enable linux-edr.service
+sudo systemctl start linux-edr.service
 
-3. Enable and start the service:
-   ```bash
-   sudo systemctl daemon-reload
-   sudo systemctl enable linux-edr.service
-   sudo systemctl start linux-edr.service
-   ```
+# Check service status
+sudo systemctl status linux-edr.service
 
-4. Check service status:
-   ```bash
-   sudo systemctl status linux-edr.service
-   ```
+# View logs
+sudo journalctl -u linux-edr.service -f
+```
+
+To uninstall the service and remove all related files:
+
+```bash
+# Uninstall service and clean up (requires root)
+sudo ./uninstall_service.sh
+```
 
 ## Automated Security Analysis
 
