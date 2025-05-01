@@ -20,14 +20,20 @@ Linux EDR captures process execution data through Linux's kernel tracing capabil
 ## Quick Start
 
 ```bash
-# Run with default settings (requires root permissions)
+# Basic monitoring with default settings (requires root permissions)
 sudo uv run python -m linux_edr.cli run
 
-# Monitor with 5-minute report interval
-sudo uv run python -m linux_edr.cli run --interval 5
+# Run in debug mode to see detailed event logs
+sudo uv run python -m linux_edr.cli run --debug
 
-# Save reports to file
-sudo uv run python -m linux_edr.cli run --output /var/log/linux-edr.jsonl
+# Monitor with custom interval and output file
+sudo uv run python -m linux_edr.cli run --interval 5 --output events.jsonl
+
+# Using a specific configuration file
+sudo uv run python -m linux_edr.cli run --config /etc/linux_edr/custom.ini
+
+# Show current configuration
+sudo uv run python -m linux_edr.cli show-config
 ```
 
 ## Architecture

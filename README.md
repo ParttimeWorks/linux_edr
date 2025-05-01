@@ -25,11 +25,7 @@ Linux EDR captures process execution data through Linux's kernel tracing capabil
 ## Installation
 
 ```bash
-# Install from GitHub release
-uv pip install git+https://github.com/ParttimeWorks/linux_edr.git@latest
-
-# Or install a specific version
-uv pip install git+https://github.com/ParttimeWorks/linux_edr.git@v1.0.0
+uv pip install git+https://github.com/ParttimeWorks/linux_edr.git@master
 ```
 
 ## Usage

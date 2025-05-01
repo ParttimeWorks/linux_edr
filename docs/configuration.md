@@ -63,4 +63,20 @@ max_summary_lines = 50
 # Set to false to reduce storage space if raw data is not needed.
 # Default: true
 include_raw_events = true
+
+# Whether to include security findings in reports (true/false)
+# Default: true
+include_security_findings = true
+
+# Whether to log verbose raw event data in debug mode (true/false)
+# Default: true
+verbose_debug_logging = true
+
+# Whether to enable syscall tracing (true/false)
+# Default: true
+enable_syscall_tracing = true
+
+# Comma-separated list of syscalls to trace (enter and exit events will be enabled)
+# Default: execve,fork,clone,connect
+syscalls_to_trace = execve,fork,clone,connect
 ``` 

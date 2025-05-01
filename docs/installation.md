@@ -4,10 +4,7 @@ Install Linux EDR using `uv` directly from the latest GitHub release or a specif
 
 ```bash
 # Install from the latest GitHub release
-uv pip install git+https://github.com/ParttimeWorks/linux_edr.git@latest
-
-# Or install a specific version (e.g., v1.0.0)
-uv pip install git+https://github.com/ParttimeWorks/linux_edr.git@v1.0.0
+uv pip install git+https://github.com/ParttimeWorks/linux_edr.git@master
 ```
 
 ## Requirements
