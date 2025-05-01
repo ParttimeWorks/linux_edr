@@ -49,7 +49,7 @@ class ReportManager:
         logger.info(f"Report manager initialized at {reports_dir}")
     
     def _load_existing_reports(self) -> None:
-        """Load the most recent reports from disk to build the hierarchy."""
+        """Load recent reports from disk."""
         # This implementation focuses on recent reports for simplicity
         # In a production system, you might want to load more historical data
         
@@ -162,8 +162,7 @@ class ReportManager:
             self._create_block()
     
     def _create_block(self) -> None:
-        """Create a Block report from 16 recent Cell reports."""
-        # Ensure we have enough cells
+        """Create a Block report from recent Cell reports."""
         if len(self.recent_cells) < 16:
             return
         
@@ -203,8 +202,7 @@ class ReportManager:
         top_processes = dict(sorted(process_counts.items(), key=lambda x: x[1], reverse=True)[:10])
         
         # Create a block ID
-        now = datetime.now(timezone.utc)
-        block_id = f"block_{now.strftime('%Y%m%d_%H%M%S')}"
+        block_id = f"block_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
         
         # Calculate total events
         total_events = sum(cell.get('total', 0) for cell in cells_data)

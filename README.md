@@ -5,19 +5,22 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Monthly Build](https://github.com/yourusername/linux-edr/actions/workflows/test-and-publish.yml/badge.svg?event=schedule)](https://github.com/yourusername/linux-edr/actions/workflows/test-and-publish.yml)
 
-A lightweight Endpoint Detection and Response (EDR) tool for Linux systems.
+A lightweight yet comprehensive Endpoint Detection and Response (EDR) solution for Linux systems that monitors command execution, analyzes system behavior, and provides actionable security insights with minimal performance impact.
 
-## Features
+## Overview
 
-- Non-blocking trace reader for `/sys/kernel/tracing/trace_pipe`
-- Thread-safe event aggregation with memory protection
-- Process-focused event collection and grouping
-- Scheduled summarization and reporting every 15 minutes
-- OpenAI integration (gpt-4o-mini) for automated threat analysis
-- Configurable output formats (JSON, console)
-- Flexible configuration via config.ini
-- Type-safe implementation with comprehensive error handling
-- Privacy-respecting design (see [Privacy Policy](PRIVACY.md))
+Linux EDR captures process execution data through Linux's kernel tracing capabilities and builds a multi-tiered reporting structure that allows for both real-time threat detection and long-term security trend analysis. By focusing on command execution patterns, it provides valuable security insights without the overhead of traditional EDR solutions.
+
+## Key Features
+
+- **Efficient Monitoring**: Non-blocking trace reader for `/sys/kernel/tracing/trace_pipe` with automatic recovery
+- **Scalable Architecture**: Thread-safe event buffer with configurable capacity and age limits
+- **Smart Data Organization**: Process-focused event collection and intelligent command grouping
+- **Hierarchical Reporting**: Tiered reports from 15-minute snapshots to monthly trend analysis
+- **AI-Enhanced Security**: OpenAI integration with gpt-4o-mini for automated threat detection
+- **Flexible Output**: Configurable reporting to JSON files or console
+- **Production-Ready**: Comprehensive error handling with graceful recovery from failures
+- **Privacy-Focused**: Collects only necessary command execution data (see [Privacy Policy](PRIVACY.md))
 
 ## Installation
 
@@ -47,7 +50,7 @@ linux-edr show-config
 
 ## Data Structure
 
-Linux EDR groups execve events by process name and maintains the full command:
+Linux EDR groups execve events by process name and maintains the full command line for context:
 
 ```json
 {
@@ -106,28 +109,28 @@ include_raw_events = true
 
 ## Hierarchical Reporting Architecture
 
-Linux EDR uses a hierarchical reporting system to provide insights at different time scales:
+Linux EDR implements a sophisticated multi-tiered reporting system that provides security visibility across different time scales:
 
 | Level | Coverage            | Name           | Description                                          |
 |:-----:|:--------------------|:---------------|:-----------------------------------------------------|
-| 1     | 15 minutes          | **Cell**       | Base unit covering a 15-minute interval              |
-| 2     | 16 Cells = 4 hours  | **Block**      | Aggregates 16 Cells (4 hours of activity)            |
-| 3     | 6 Blocks = 24 hours | **DailyReport**| Consolidates 6 Blocks (full day of activity)         |
-| 4     | 7 DailyReports      | **WeeklyReport**| Analyzes 7 daily reports (week-long patterns)       |
-| 5     | ~4 WeeklyReports    | **MonthlyReport**| Long-term analysis of approximately 4 weeks        |
+| 1     | 15 minutes          | **Cell**       | Base unit capturing immediate system activity        |
+| 2     | 16 Cells = 4 hours  | **Block**      | Short-term patterns across multiple Cells            |
+| 3     | 6 Blocks = 24 hours | **DailyReport**| Consolidated view of a full day's activity           |
+| 4     | 7 DailyReports      | **WeeklyReport**| Week-long trends with daily breakdowns              |
+| 5     | ~4 WeeklyReports    | **MonthlyReport**| Strategic view of monthly security posture         |
 
-This multi-level approach enables:
-- Immediate detection of suspicious activity (Cell level)
-- Short-term pattern recognition (Block level)
-- Daily security posture assessment (DailyReport)
-- Weekly trend analysis (WeeklyReport)
-- Monthly strategic security reviews (MonthlyReport)
+This architecture enables:
+- **Immediate threat detection** at the Cell level
+- **Context-rich pattern recognition** at the Block level
+- **Daily security posture assessment** in DailyReports
+- **Trend identification** in WeeklyReports
+- **Strategic security planning** with MonthlyReports
 
-All reports are stored in JSON format under the configured `reports_dir` with subdirectories for each level.
+All reports are automatically stored in JSON format in the configured `reports_dir` with appropriate subdirectories for each level.
 
 ## Systemd Service
 
-Linux EDR can be run as a systemd service:
+Linux EDR can be deployed as a systemd service for continuous monitoring:
 
 1. Copy the service file to systemd directory:
    ```bash
@@ -151,45 +154,46 @@ Linux EDR can be run as a systemd service:
    sudo systemctl status linux-edr.service
    ```
 
-## Automated Analysis
+## Automated Security Analysis
 
-The tool sends process execution data to OpenAI's gpt-4o-mini model for analysis every 15 minutes (configurable). The AI looks for suspicious patterns like:
+Linux EDR leverages OpenAI's gpt-4o-mini model to analyze process execution patterns and identify potential security threats. The analysis focuses on:
 
-- Unusual command execution patterns
+- Unusual command execution patterns and frequencies
 - Potential privilege escalation attempts
-- Data exfiltration attempts
-- Unusual network access
-- Suspicious file operations
+- Command sequences indicating data exfiltration
+- Anomalous network access patterns
+- Suspicious file operations or permission changes
 
-Analysis results are saved alongside the JSON reports with the `.analysis` extension.
+Analysis results are saved alongside JSON reports with the `.analysis` extension, providing actionable insights without requiring manual review of raw data.
 
 ## Privacy and System Impact
 
-Linux EDR is designed to be non-invasive and privacy-respecting:
+Linux EDR is designed with privacy and performance in mind:
 
-- Only monitors execve syscalls, not file contents or keystrokes
-- Stores data locally by default
-- Transmits data externally only with explicit configuration
-- Uses minimal system resources
-- Gracefully handles various error conditions
-- See our full [Privacy Policy](PRIVACY.md)
+- Collects only process execution data, not file contents or user input
+- Stores data locally by default with configurable retention
+- Transmits data externally only when explicitly configured
+- Uses non-blocking I/O and efficient buffering to minimize CPU usage
+- Implements backpressure mechanisms to handle high-volume events
+- See the full [Privacy Policy](PRIVACY.md) for details
 
-## Error Handling
+## Advanced Error Handling
 
-Linux EDR includes comprehensive error handling to ensure reliable operation:
+To ensure reliable operation in production environments, Linux EDR includes:
 
-- Graceful handling of missing trace_pipe (waits for it to become available)
-- Proper permission error reporting
-- Automatic reopening of trace files if they become unavailable
-- Configurable logging levels and rotation
-- Thread-safe operations with proper resource cleanup
+- Smart retry logic for trace pipe access with configurable backoff
+- Graceful handling of permission errors with clear guidance
+- Automatic reconnection if trace sources become unavailable
+- Thread-safe operations with proper resource management
+- Comprehensive logging with configurable verbosity
+- Clean shutdown mechanisms that preserve data integrity
 
 ## Requirements
 
 - Python 3.11 or later
-- [uv](https://github.com/astral-sh/uv) (required for all dependency management and installation)
+- [uv](https://github.com/astral-sh/uv) for dependency management
 - Linux kernel with ftrace support
-- Appropriate permissions to read from trace_pipe (typically root)
+- Appropriate permissions to read from trace_pipe (typically requires root)
 
 ## Project Structure
 
@@ -197,20 +201,21 @@ Linux EDR includes comprehensive error handling to ensure reliable operation:
 linux-edr/
 ├── linux_edr/
 │   ├── __init__.py
-│   ├── cli.py            # Typer-based CLI entrypoint
-│   ├── app.py            # Orchestration & lifecycle
+│   ├── cli.py            # Typer-based CLI interface
+│   ├── app.py            # Core application logic
 │   ├── config.py         # Configuration management
-│   ├── trace.py          # Non-blocking ftrace reader
-│   ├── aggregator.py     # Event aggregation & buffering
-│   ├── summary.py        # Summary & statistics builder
-│   ├── reporter.py       # OpenAI + file/HTTP outputs
+│   ├── trace.py          # Non-blocking trace reader
+│   ├── aggregator.py     # Thread-safe event buffering
+│   ├── summary.py        # Report generation
+│   ├── reporter.py       # OpenAI integration and output
+│   ├── report_manager.py # Hierarchical report handling
 │   └── models.py         # Pydantic data models
-├── tests/                # pytest unit & integration tests
-├── docs/                 # MkDocs site
-├── linux-edr.service     # Systemd service file
-├── pyproject.toml        # Build metadata & entry point
+├── tests/                # Comprehensive test suite
+├── docs/                 # Documentation
+├── linux-edr.service     # Systemd service definition
+├── pyproject.toml        # Project metadata
 ├── PRIVACY.md            # Privacy policy
-└── README.md             # Project overview & badges
+└── README.md             # This file
 ```
 
 ## Development

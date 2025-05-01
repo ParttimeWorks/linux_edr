@@ -19,12 +19,7 @@ def run(
         None, "--debug", "-d", help="Enable debug logging"
     ),
 ):
-    """
-    Run Linux EDR monitoring.
-    
-    The application can be configured via a config.ini file or command line arguments.
-    Command line arguments take precedence over configuration file settings.
-    """
+    """Run Linux EDR monitoring with config.ini or command line arguments."""
     LinuxEDRApp(
         config_path=config,
         interval=interval,
@@ -38,12 +33,7 @@ def show_config(
         None, "--config", "-c", help="Path to config file"
     ),
 ):
-    """
-    Show the current configuration values.
-    
-    This displays the effective configuration after loading from file
-    and applying any environment variables.
-    """
+    """Display effective configuration from file and environment variables."""
     from .config import Config
     import json
     

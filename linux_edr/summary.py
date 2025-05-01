@@ -24,7 +24,6 @@ def build_summary(events: List[Dict[str, Any]],
     counts = Counter(evt["command"] for evt in events)
     proc_summary: Dict[str, int] = dict(counts)
     
-    # Create the report
     report_data = {
         "report_id": now.isoformat(),
         "window_start": start.isoformat(),

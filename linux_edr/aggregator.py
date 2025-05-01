@@ -67,12 +67,7 @@ class Aggregator:
             return False
 
     def snapshot_and_clear(self) -> List[Dict[str, Any]]:
-        """
-        Take a snapshot of the current buffer and clear it.
-        
-        Returns:
-            List of events in the buffer
-        """
+        """Take a snapshot of the current buffer and clear it."""
         with self.lock:
             # Remove old events if max_age is set
             if self.max_age_seconds is not None:
@@ -100,12 +95,7 @@ class Aggregator:
         return events
         
     def get_stats(self) -> Dict[str, Any]:
-        """
-        Get statistics about the aggregator.
-        
-        Returns:
-            Dictionary with statistics
-        """
+        """Get statistics about the aggregator."""
         with self.lock:
             return {
                 "buffer_size": len(self.buffer),

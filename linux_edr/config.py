@@ -38,19 +38,7 @@ class Config:
         self.load()
 
     def _find_config(self, config_path: Optional[str] = None) -> str:
-        """
-        Find the configuration file to use.
-        
-        Args:
-            config_path: Explicit path to the config file (optional)
-            
-        Returns:
-            Path to the configuration file to use
-            
-        Note:
-            If no config file is found, this will return the package default path,
-            which may not exist. The load() method will handle this case.
-        """
+        """Find configuration file in default locations or use specified path."""
         # Use specified path if it exists
         if config_path and os.path.exists(config_path):
             return config_path
@@ -66,12 +54,7 @@ class Config:
         return os.path.join(package_dir, "config.ini")
 
     def load(self) -> None:
-        """
-        Load the configuration from file.
-        
-        Raises:
-            FileNotFoundError: If the config file doesn't exist
-        """
+        """Load configuration from file."""
         if not os.path.exists(self.config_path):
             logger.warning(f"Config file not found: {self.config_path}")
             raise FileNotFoundError(f"Config file not found: {self.config_path}")

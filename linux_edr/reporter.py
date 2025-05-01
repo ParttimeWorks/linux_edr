@@ -15,14 +15,7 @@ class Reporter:
     def save_json(self, summary: Union[SummaryReport, Cell, Block, DailyReport, WeeklyReport, MonthlyReport], 
                  include_raw_events: bool = False, 
                  raw_events: Optional[List[Dict[str, Any]]] = None) -> None:
-        """
-        Save summary report to a JSON file.
-        
-        Args:
-            summary: The summary report to save
-            include_raw_events: Whether to include raw events in the output
-            raw_events: List of raw events to include
-        """
+        """Save summary report to a JSON file."""
         if not self.output_file:
             return
             
@@ -46,15 +39,7 @@ class Reporter:
             logger.error(f"Failed writing report: {e}")
 
     def send_llm(self, report: Union[SummaryReport, Cell, Block, DailyReport, WeeklyReport, MonthlyReport]) -> Optional[str]:
-        """
-        Send report to LLM for analysis.
-        
-        Args:
-            report: The report to analyze
-            
-        Returns:
-            The analysis text if successful, None otherwise
-        """
+        """Send report to LLM for analysis."""
         if not self.client:
             logger.warning("OpenAI client not configured, skipping LLM analysis")
             return None

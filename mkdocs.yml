@@ -1,14 +1,14 @@
 site_name: Linux EDR
 site_description: Endpoint Detection and Response for Linux systems
-site_url: https://github.com/yourusername/linux-edr
+site_url: https://github.com/ParttimeWorks/linux_edr
 
 repo_name: linux-edr
-repo_url: https://github.com/yourusername/linux-edr
+repo_url: https://github.com/ParttimeWorks/linux_edr
 
 theme:
   name: material
   palette:
-    primary: blue
+    primary: indigo
     accent: blue
   features:
     - navigation.instant
@@ -17,28 +17,51 @@ theme:
     - navigation.expand
     - toc.integrate
     - content.code.copy
+    - search.highlight
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
 
 nav:
   - Home: index.md
-  - Installation: installation.md
-  - Usage: usage.md
-  - Architecture: architecture.md
-  - API:
-    - Trace Reader: api/trace.md
+  - Getting Started:
+    - Installation: installation.md
+    - Usage: usage.md
+    - Configuration: configuration.md
+  - Architecture:
+    - Overview: architecture/overview.md
+    - Hierarchical Reporting: architecture/reporting.md
+    - AI Analysis: architecture/ai-analysis.md
+  - API Reference:
+    - TraceReader: api/trace.md
     - Aggregator: api/aggregator.md
-    - Summary: api/summary.md
+    - Report Manager: api/report_manager.md
+    - Models: api/models.md
     - Reporter: api/reporter.md
   - Development: development.md
+  - Privacy Policy: privacy.md
 
 markdown_extensions:
-  - pymdownx.highlight
-  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.inlinehilite
-  - pymdownx.tabbed
-  - pymdownx.tasklist
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
   - admonition
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
   - toc:
       permalink: true
+      toc_depth: 3
 
 plugins:
   - search
@@ -49,8 +72,13 @@ plugins:
             docstring_style: google
           rendering:
             show_source: true
+            show_signature_annotations: true
+  - git-revision-date-localized:
+      enable_creation_date: true
 
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/yourusername/linux-edr 
+      link: https://github.com/ParttimeWorks/linux_edr
+  version:
+    provider: mike 

@@ -1,5 +1,5 @@
 import logging.config
-from collections import namedtuple, defaultdict
+from collections import defaultdict
 import re
 import os
 from typing import Dict, List, Optional, Any, NamedTuple, Iterator
@@ -45,6 +45,11 @@ class ExecveEvent(NamedTuple):
     command: str
     args: List[str]
 
+# Pre-compile the execve pattern once at import time for better performance
+# Example trace snippet:
+#   "12345 [678] ... execve("/usr/bin/python3" \"python3\" \"script.py\")"
+EXECVE_PATTERN = re.compile(r"(\S+)\s+\[(\d+)\]\s+.*execve.*\((.*?)\)")
+
 def parse_execve(line: str) -> Optional[ExecveEvent]:
     """
     Parse execve events from ftrace output.
@@ -59,8 +64,9 @@ def parse_execve(line: str) -> Optional[ExecveEvent]:
         return None
         
     try:
-        execve_pattern = r'(\S+)\s+\[(\d+)\]\s+.*execve.*\((.*?)\)'
-        match = re.search(execve_pattern, line)
+        # Re-use the pre-compiled pattern; compiling inside the tight loop is unnecessarily
+        # expensive when processing thousands of trace lines per second.
+        match = EXECVE_PATTERN.search(line)
         if not match:
             return None
             
@@ -77,12 +83,7 @@ def parse_execve(line: str) -> Optional[ExecveEvent]:
         if not cmd_parts:
             return None
             
-        return ExecveEvent(
-            timestamp=timestamp,
-            pid=pid,
-            command=cmd_parts[0].strip('"'),
-            args=cmd_parts[1:] if len(cmd_parts) > 1 else []
-        )
+        return ExecveEvent(timestamp, pid, cmd_parts[0].strip('"'), cmd_parts[1:])
     except Exception as e:
         logging.error(f"Error parsing execve event: {e}, line: {line}")
         return None
@@ -101,25 +102,16 @@ def process_raw_events(events: List[Dict[str, Any]]) -> Dict[str, List[str]]:
         return {}
         
     grouped_events: Dict[str, List[str]] = defaultdict(list)
-    
+
     for event in events:
         try:
-            process_name = event.get("command")
-            if not process_name:
-                continue
-                
-            # Build command line string
-            cmd_line = process_name
-            args = event.get("args", [])
-            if args:
-                cmd_line += " " + " ".join(str(arg) for arg in args)
-                
-            # Add to grouped events
-            grouped_events[process_name].append(cmd_line)
+            if process_name := event.get("command"):
+                # Join command and args in the most compact/pythonic way
+                cmd_line = " ".join([process_name, *map(str, event.get("args", []))])
+                grouped_events[process_name].append(cmd_line)
         except Exception as e:
-            logging.warning(f"Error processing event {event}: {e}")
-    
-    # Convert defaultdict to regular dict
+            logging.warning("Error processing event %s: %s", event, e)
+
     return dict(grouped_events)
 
 class LinuxEDRApp:

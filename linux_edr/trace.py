@@ -6,12 +6,7 @@ import logging
 import time
 from typing import Generator, Optional
 
-# Ensure that the ``mock`` shorthand used in the test-suite is always
-# available.  Some tests reference ``mock.ANY`` without importing the
-# ``mock`` module explicitly.  In modern Python versions the functionality is
-# provided by :pymod:`unittest.mock`.  We therefore expose that module under
-# the name ``mock`` via :pymod:`builtins` so that the tests do not raise
-# ``NameError``.
+# Make mock available for tests
 import builtins as _builtins
 import unittest.mock as _unittest_mock
 _builtins.mock = _unittest_mock
@@ -127,9 +122,6 @@ class TraceReader:
             # unexpected parameters.
             self.sel.register()
 
-        # No return value; we simply ensure registration (or propagate any
-        # other unexpected exception).
-
     def _reopen_if_needed(self) -> bool:
         """
         Reopen the file descriptor if it's closed or invalid.
@@ -206,7 +198,6 @@ class TraceReader:
                                     yield line
                         except OSError as e:
                             if e.errno in (errno.EAGAIN, errno.EWOULDBLOCK):
-                                # Non-blocking read with no data, just continue
                                 continue
                             elif e.errno == errno.EBADF:
                                 # Bad file descriptor, try to reopen
@@ -230,8 +221,6 @@ class TraceReader:
                     # ``DefaultSelector.select`` to raise an arbitrary
                     # ``Exception`` followed by ``StopIteration``.
                     logger.error(f"Unexpected error in trace reader: {e}")
-                    # Small sleep prevents the loop from burning CPU if the
-                    # underlying issue persists.
                     time.sleep(1)
                     continue
         except KeyboardInterrupt:
