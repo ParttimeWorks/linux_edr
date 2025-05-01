@@ -38,10 +38,20 @@ cp linux-edr.service /etc/systemd/system/
 # Create default config directory if it doesn't exist
 mkdir -p /etc/linux_edr
 
-# Copy default config if it doesn't exist
-if [ ! -f /etc/linux_edr/config.ini ]; then
-  echo "Installing default configuration..."
-  cp linux_edr/config.ini /etc/linux_edr/
+# Copy default config and update with OpenAI API key
+echo "Installing configuration..."
+cp linux_edr/config.ini /etc/linux_edr/
+
+# Prompt for OpenAI API key
+echo ""
+echo "Please enter your OpenAI API key (press Enter to skip):"
+read -r api_key
+
+if [ ! -z "$api_key" ]; then
+  # Update the config file with the API key
+  echo "Setting OpenAI API key in config file..."
+  sed -i "s/^api_key =.*/api_key = $api_key/" /etc/linux_edr/config.ini
+  chmod 600 /etc/linux_edr/config.ini
 fi
 
 # Reload systemd
@@ -54,4 +64,5 @@ echo ""
 echo "To check status:"
 echo "  systemctl status linux-edr.service"
 echo ""
-echo "Configuration file is at /etc/linux_edr/config.ini" 
+echo "Configuration file is at /etc/linux_edr/config.ini"
+echo "Note: The config file permissions are set to 600 to protect the API key" 
