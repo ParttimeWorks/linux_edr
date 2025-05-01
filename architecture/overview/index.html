@@ -16,7 +16,7 @@
         <link rel="prev" href="../../configuration/">
       
       
-        <link rel="next" href="../reporting/">
+        <link rel="next" href="../clean-architecture/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -261,8 +261,15 @@
   
     
     
+      
+  
+  
+  
+  
+    
+    
       <li class="md-tabs__item">
-        <a href="../../api/trace/" class="md-tabs__link">
+        <a href="../../api/domain/models/" class="md-tabs__link">
           
   
   
@@ -270,6 +277,9 @@
 
         </a>
       </li>
+    
+  
+
     
   
 
@@ -299,13 +309,32 @@
   
   
     <li class="md-tabs__item">
+      <a href="../../reporting/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Reporting
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="../../privacy/" class="md-tabs__link">
         
   
   
     
   
-  Privacy Policy
+  Privacy
 
       </a>
     </li>
@@ -607,11 +636,71 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#clean-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      Clean Architecture
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#core-components" class="md-nav__link">
     <span class="md-ellipsis">
       Core Components
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Core Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#domain-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      Domain Layer
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#application-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      Application Layer
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#infrastructure-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      Infrastructure Layer
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interfaces-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      Interfaces Layer
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#legacy-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      Legacy Components
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -637,6 +726,29 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../clean-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Clean Architecture
+    
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -746,13 +858,256 @@
   
   
   
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_1" id="__nav_4_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Domain
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_1">
+            <span class="md-nav__icon md-icon"></span>
+            Domain
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/domain/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Models
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Application
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            Application
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/application/services/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Services
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/application/use_cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Use Cases
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Infrastructure
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            Infrastructure
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/infrastructure/repositories/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Repositories
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../api/trace/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    TraceReader
+    Trace Reader
     
   </span>
   
@@ -785,6 +1140,135 @@
   
 
               
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Interfaces
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_4">
+            <span class="md-nav__icon md-icon"></span>
+            Interfaces
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/interfaces/controllers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Controllers
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_5" id="__nav_4_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Legacy APIs
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_5">
+            <span class="md-nav__icon md-icon"></span>
+            Legacy APIs
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
             
               
                 
@@ -861,6 +1345,14 @@
     </li>
   
 
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
     
       
       
@@ -891,12 +1383,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Reporting
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../privacy/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Privacy Policy
+    Privacy
     
   </span>
   
@@ -926,54 +1440,88 @@
 
 
 <h1 id="architecture-overview">Architecture Overview<a class="headerlink" href="#architecture-overview" title="Permanent link">&para;</a></h1>
-<p>Linux EDR is designed with a modular and robust architecture to handle real-time event processing and reporting efficiently.</p>
-<h2 id="core-components">Core Components<a class="headerlink" href="#core-components" title="Permanent link">&para;</a></h2>
+<p>Linux EDR is designed with a modular and robust architecture to handle real-time event processing and reporting efficiently. The system follows Clean Architecture principles to ensure maintainability, testability, and separation of concerns.</p>
+<h2 id="clean-architecture">Clean Architecture<a class="headerlink" href="#clean-architecture" title="Permanent link">&para;</a></h2>
+<p>The system is organized into four primary layers:</p>
 <ul>
-<li><strong>Trace Reader (<code>trace.py</code>)</strong>: Uses non-blocking I/O (<code>selectors</code>) to read from the kernel's <code>trace_pipe</code> without impacting system performance. Includes robust error handling and automatic reconnection logic.</li>
-<li><strong>Aggregator (<code>aggregator.py</code>)</strong>: A thread-safe buffer (<code>deque</code>) that collects events from the trace reader. Implements backpressure using a maximum length and optional event age limits.</li>
+<li><strong>Domain</strong>: Core business logic and entities</li>
+<li><strong>Application</strong>: Application-specific business rules and use cases</li>
+<li><strong>Infrastructure</strong>: External systems implementations</li>
+<li><strong>Interfaces</strong>: Entry points to the system</li>
+</ul>
+<p>For more details, see the <a href="../clean-architecture/">Clean Architecture</a> page.</p>
+<h2 id="core-components">Core Components<a class="headerlink" href="#core-components" title="Permanent link">&para;</a></h2>
+<h3 id="domain-layer">Domain Layer<a class="headerlink" href="#domain-layer" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Models</strong>: Defines the structure of events and reports using Pydantic, ensuring data consistency and validation.</li>
+</ul>
+<h3 id="application-layer">Application Layer<a class="headerlink" href="#application-layer" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Services</strong>: Stateless services that implement business rules</li>
+<li><strong>Use Cases</strong>: Orchestrates business processes and workflows</li>
+</ul>
+<h3 id="infrastructure-layer">Infrastructure Layer<a class="headerlink" href="#infrastructure-layer" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Repositories</strong>: Data access implementations</li>
+<li><strong>Trace Reader</strong>: Uses non-blocking I/O (<code>selectors</code>) to read from the kernel's <code>trace_pipe</code> without impacting system performance. Includes robust error handling and automatic reconnection logic.</li>
+<li><strong>Aggregator</strong>: A thread-safe buffer (<code>deque</code>) that collects events from the trace reader. Implements backpressure using a maximum length and optional event age limits.</li>
+<li><strong>Reporter</strong>: Handles the output of reports, including saving to JSON files and sending data to OpenAI for analysis.</li>
+</ul>
+<h3 id="interfaces-layer">Interfaces Layer<a class="headerlink" href="#interfaces-layer" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Controllers</strong>: Handle incoming requests from CLI or other interfaces</li>
+<li><strong>CLI</strong>: Provides the command-line interface using Typer.</li>
+</ul>
+<h3 id="legacy-components">Legacy Components<a class="headerlink" href="#legacy-components" title="Permanent link">&para;</a></h3>
+<ul>
 <li><strong>Report Manager (<code>report_manager.py</code>)</strong>: Orchestrates the creation, storage, and aggregation of hierarchical reports (Cells, Blocks, Daily, Weekly, Monthly). Manages the lifecycle of reports based on time and event counts.</li>
-<li><strong>Models (<code>models.py</code>)</strong>: Defines the structure of events and reports using Pydantic, ensuring data consistency and validation.</li>
-<li><strong>Reporter (<code>reporter.py</code>)</strong>: Handles the output of reports, including saving to JSON files and sending data to OpenAI for analysis.</li>
 <li><strong>Summary (<code>summary.py</code>)</strong>: Contains logic for building the initial summary reports (Cells) from aggregated events.</li>
 <li><strong>Application (<code>app.py</code>)</strong>: The main application class that initializes components, manages the scheduler (using <code>APScheduler</code>), and orchestrates the event processing pipeline.</li>
 <li><strong>Configuration (<code>config.py</code>)</strong>: Loads and provides access to configuration settings from <code>config.ini</code> files.</li>
-<li><strong>CLI (<code>cli.py</code>)</strong>: Provides the command-line interface using Typer.</li>
 </ul>
 <h2 id="data-flow">Data Flow<a class="headerlink" href="#data-flow" title="Permanent link">&para;</a></h2>
 <ol>
 <li>The <code>TraceReader</code> continuously reads <code>execve</code> events from the kernel trace pipe.</li>
 <li>Events are passed to the <code>Aggregator</code>, which buffers them in a thread-safe manner.</li>
-<li>A background scheduler triggers the <code>_summarize</code> method in <code>app.py</code> at the configured interval (<code>report_interval</code>).</li>
-<li><code>_summarize</code> retrieves a snapshot of events from the <code>Aggregator</code>.</li>
-<li><code>build_summary</code> creates a Level 1 <code>Cell</code> report from the event snapshot.</li>
+<li>A background scheduler triggers the appropriate use case at the configured interval.</li>
+<li>The use case retrieves a snapshot of events from the <code>Aggregator</code>.</li>
+<li>The service creates a Level 1 <code>Cell</code> report from the event snapshot.</li>
 <li>The <code>Cell</code> is passed to the <code>ReportManager</code>.</li>
 <li>The <code>ReportManager</code> saves the <code>Cell</code> and checks if enough Cells exist to create a Level 2 <code>Block</code>. This process continues up the hierarchy (Daily, Weekly, Monthly).</li>
-<li>The <code>Reporter</code> can optionally save the initial <code>Cell</code> report to a JSON file (<code>output_file</code>) and send it to OpenAI for analysis.</li>
+<li>The <code>Reporter</code> can optionally save the initial <code>Cell</code> report to a JSON file and send it to OpenAI for analysis.</li>
 <li>Higher-level reports (Blocks, etc.) can also be configured for AI analysis via the <code>ReportManager</code> interacting with the <code>Reporter</code>.</li>
 </ol>
 <h2 id="project-structure">Project Structure<a class="headerlink" href="#project-structure" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>linux-edr/
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── linux_edr/            # Main source code package
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│   ├── __init__.py
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│   ├── cli.py            # Typer-based CLI interface
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│   ├── app.py            # Core application logic
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│   ├── config.py         # Configuration management
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│   ├── trace.py          # Non-blocking trace reader
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│   ├── aggregator.py     # Thread-safe event buffering
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│   ├── summary.py        # Initial report generation (Cells)
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│   ├── reporter.py       # OpenAI integration and output handling
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>│   ├── report_manager.py # Hierarchical report management
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>│   └── models.py         # Pydantic data models
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>├── tests/                # Comprehensive test suite
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>├── docs/                 # Documentation source files
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>├── .github/              # GitHub Actions workflows
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>│   └── workflows/
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>│       └── docs.yml      # Documentation deployment workflow
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>├── linux-edr.service     # Systemd service definition
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>├── pyproject.toml        # Project metadata and dependencies
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>├── mkdocs.yml            # MkDocs configuration
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>├── PRIVACY.md            # Privacy policy
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>└── README.md             # Repository README
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── linux_edr/                   # Main source code package
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│   ├── domain/                  # Core business logic
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│   │   └── models/              # Domain entities and value objects
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│   ├── application/             # Application-specific business rules
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│   │   ├── services/            # Stateless operations
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│   │   └── use_cases/           # Business processes
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│   ├── infrastructure/          # External systems implementations
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│   │   └── repositories/        # Data access implementations
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│   ├── interfaces/              # Entry points to the system
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>│   │   └── controllers/         # Input adapters (CLI, API controllers)
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>│   ├── app.py                   # Core application logic (legacy)
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>│   ├── config.py                # Configuration management (legacy)
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>│   ├── trace.py                 # Non-blocking trace reader (legacy)
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>│   ├── aggregator.py            # Thread-safe event buffering (legacy)
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>│   ├── summary.py               # Initial report generation (legacy)
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>│   ├── reporter.py              # OpenAI integration (legacy)
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>│   ├── report_manager.py        # Report management (legacy)
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>│   ├── models.py                # Pydantic data models (legacy)
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>│   └── cli.py                   # CLI interface (legacy)
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>├── tests/                       # Comprehensive test suite
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>├── docs/                        # Documentation source files
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>├── .github/                     # GitHub Actions workflows
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>│   └── workflows/
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>│       └── docs.yml             # Documentation deployment workflow
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>├── linux-edr.service            # Systemd service definition
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>├── pyproject.toml               # Project metadata and dependencies
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>├── mkdocs.yml                   # MkDocs configuration
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>├── PRIVACY.md                   # Privacy policy
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>└── README.md                    # Repository README
 </code></pre></div>
 
 
@@ -997,7 +1545,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 1, 2025 14:22:25">May 1, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 1, 2025 16:08:28">May 1, 2025</span>
   </span>
 
     
