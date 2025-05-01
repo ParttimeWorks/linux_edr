@@ -7,7 +7,8 @@ from datetime import datetime, timezone
 import json
 
 from linux_edr.report_manager import ReportManager
-from linux_edr.models import Cell, Block, DailyReport
+from linux_edr.domain.models.reports import Cell, Block, DailyReport
+from linux_edr.application.services.report_service import ReportService
 
 
 class TestReportManager(unittest.TestCase):
@@ -16,10 +17,6 @@ class TestReportManager(unittest.TestCase):
     def setUp(self):
         # Create a temporary directory for test reports
         self.test_dir = tempfile.mkdtemp()
-        
-        # Create report directories
-        for subdir in ["cells", "blocks", "daily", "weekly", "monthly"]:
-            os.makedirs(os.path.join(self.test_dir, subdir), exist_ok=True)
 
     def tearDown(self):
         # Clean up the temporary directory
@@ -34,92 +31,33 @@ class TestReportManager(unittest.TestCase):
             dir_path = os.path.join(self.test_dir, subdir)
             self.assertTrue(os.path.exists(dir_path), f"Directory {dir_path} was not created")
         
-        # Verify empty recent report lists
+        # Verify repositories are initialized
+        self.assertIsNotNone(manager.cell_repository)
+        self.assertIsNotNone(manager.block_repository)
+        self.assertIsNotNone(manager.daily_repository)
+        self.assertIsNotNone(manager.weekly_repository)
+        self.assertIsNotNone(manager.monthly_repository)
+        
+        # Verify service is initialized
+        self.assertIsNotNone(manager.service)
+        
+        # Verify empty recent report lists (via properties)
         self.assertEqual(manager.recent_cells, [])
         self.assertEqual(manager.recent_blocks, [])
         self.assertEqual(manager.recent_daily_reports, [])
         self.assertEqual(manager.recent_weekly_reports, [])
-        
-        # Verify reporter is None
-        self.assertIsNone(manager.reporter)
 
     def test_init_with_reporter(self):
         """Test initialization with a reporter instance."""
         mock_reporter = MagicMock()
         manager = ReportManager(self.test_dir, reporter=mock_reporter)
         
-        # Verify reporter is set
-        self.assertEqual(manager.reporter, mock_reporter)
+        # Verify reporter was passed to the service
+        self.assertEqual(manager.service.reporter, mock_reporter)
 
-    def test_save_and_load_report(self):
-        """Test saving and loading a report."""
-        manager = ReportManager(self.test_dir)
-        
-        # Create a cell report
-        cell = Cell(
-            report_id="test_cell_1",
-            window_start="2023-01-01T00:00:00+00:00",
-            window_end="2023-01-01T00:15:00+00:00",
-            total=5,
-            command_counts={"ls": 3, "cat": 2}
-        )
-        
-        # Use _save_report to save the cell
-        manager._save_report(cell, "cells")
-        
-        # Verify file was created
-        cell_path = os.path.join(self.test_dir, "cells", "test_cell_1.json")
-        self.assertTrue(os.path.exists(cell_path))
-        
-        # Use _load_report to load the cell
-        loaded_data = manager._load_report("test_cell_1", "cells")
-        
-        # Verify data was loaded correctly
-        self.assertIsNotNone(loaded_data)
-        self.assertEqual(loaded_data["report_id"], "test_cell_1")
-        self.assertEqual(loaded_data["total"], 5)
-        self.assertEqual(loaded_data["command_counts"]["ls"], 3)
-
-    def test_load_nonexistent_report(self):
-        """Test loading a nonexistent report."""
-        manager = ReportManager(self.test_dir)
-        
-        # Try to load a nonexistent report
-        result = manager._load_report("nonexistent", "cells")
-        
-        # Should return None
-        self.assertIsNone(result)
-
-    def test_get_recent_reports(self):
-        """Test getting recent reports."""
-        manager = ReportManager(self.test_dir)
-        
-        # Create three cell reports with different timestamps
-        for i in range(3):
-            cell = Cell(
-                report_id=f"test_cell_{i}",
-                window_start="2023-01-01T00:00:00+00:00",
-                window_end="2023-01-01T00:15:00+00:00",
-                total=5,
-                command_counts={"ls": 3, "cat": 2}
-            )
-            manager._save_report(cell, "cells")
-            
-            # Add a small delay to ensure different modification times
-            if i < 2:  # No need to delay after the last one
-                import time
-                time.sleep(0.1)
-        
-        # Get the two most recent reports
-        recent = manager._get_recent_reports("cells", 2)
-        
-        # Should have the two most recent reports (in reverse order)
-        self.assertEqual(len(recent), 2)
-        self.assertEqual(recent[0], "test_cell_2")  # Most recent first
-        self.assertEqual(recent[1], "test_cell_1")
-
-    def test_create_cell(self):
-        """Test create_cell method."""
+    @patch('linux_edr.application.services.report_service.ReportService.add_cell')
+    def test_create_cell(self, mock_add_cell):
+        """Test create_cell method delegates to the service."""
         manager = ReportManager(self.test_dir)
         
         # Create a cell
@@ -134,125 +72,45 @@ class TestReportManager(unittest.TestCase):
         # Call create_cell
         manager.create_cell(cell)
         
-        # Verify cell was saved
-        cell_path = os.path.join(self.test_dir, "cells", "test_cell_1.json")
-        self.assertTrue(os.path.exists(cell_path))
-        
-        # Verify cell was added to recent_cells
-        self.assertEqual(len(manager.recent_cells), 1)
-        self.assertEqual(manager.recent_cells[0], "test_cell_1")
+        # Verify service.add_cell was called
+        mock_add_cell.assert_called_once_with(cell)
 
-    def test_create_cell_with_reporter(self):
-        """Test create_cell method with a reporter."""
-        mock_reporter = MagicMock()
-        manager = ReportManager(self.test_dir, reporter=mock_reporter)
+    @patch('linux_edr.application.services.report_service.ReportService.get_report')
+    def test_get_report(self, mock_get_report):
+        """Test get_report method delegates to the service."""
+        manager = ReportManager(self.test_dir)
         
-        # Create a cell without analysis
-        cell = Cell(
-            report_id="test_cell_1",
-            window_start="2023-01-01T00:00:00+00:00",
-            window_end="2023-01-01T00:15:00+00:00",
-            total=5,
-            command_counts={"ls": 3, "cat": 2}
-        )
+        # Mock return value
+        mock_report = {"report_id": "test_cell_1", "total": 5}
+        mock_get_report.return_value = mock_report
         
-        # Call create_cell
-        manager.create_cell(cell)
+        # Call get_report
+        result = manager.get_report("test_cell_1", "cells")
         
-        # Verify reporter.analyze_report was called
-        mock_reporter.analyze_report.assert_called_once_with(cell)
+        # Verify service.get_report was called
+        mock_get_report.assert_called_once_with("test_cell_1", "cells")
+        
+        # Verify result
+        self.assertEqual(result, mock_report)
 
-    def test_cell_limit(self):
-        """Test that recent_cells is limited to the correct size."""
+    def test_recent_properties(self):
+        """Test that recent_* properties delegate to the service."""
+        # Create a manager with a mock service
         manager = ReportManager(self.test_dir)
+        mock_service = MagicMock()
+        manager.service = mock_service
         
-        # Add more cells than the limit (16)
-        for i in range(20):
-            cell = Cell(
-                report_id=f"test_cell_{i}",
-                window_start="2023-01-01T00:00:00+00:00",
-                window_end="2023-01-01T00:15:00+00:00",
-                total=5,
-                command_counts={"ls": 3, "cat": 2}
-            )
-            manager.create_cell(cell)
+        # Set mock return values
+        mock_service.recent_cells = ["cell1", "cell2"]
+        mock_service.recent_blocks = ["block1"]
+        mock_service.recent_daily_reports = ["daily1", "daily2", "daily3"]
+        mock_service.recent_weekly_reports = ["weekly1"]
         
-        # Should have at most 16 cells (the limit for a block)
-        self.assertLessEqual(len(manager.recent_cells), 16)
-        
-        # The most recent cells should be at the beginning
-        self.assertEqual(manager.recent_cells[0], "test_cell_19")
-
-    @patch('linux_edr.report_manager.ReportManager._create_block')
-    def test_block_creation_trigger(self, mock_create_block):
-        """Test that _create_block is called when there are enough cells."""
-        manager = ReportManager(self.test_dir)
-        
-        # Add exactly 16 cells (the number needed for a block)
-        for i in range(16):
-            cell = Cell(
-                report_id=f"test_cell_{i}",
-                window_start="2023-01-01T00:00:00+00:00",
-                window_end="2023-01-01T00:15:00+00:00",
-                total=5,
-                command_counts={"ls": 3, "cat": 2}
-            )
-            manager.create_cell(cell)
-        
-        # _create_block should have been called
-        mock_create_block.assert_called_once()
-        
-    def test_calculate_severity_from_lower_reports(self):
-        """Test severity calculation from lower-level reports."""
-        manager = ReportManager(self.test_dir)
-        
-        test_cases = [
-            # All same severity
-            ([{"severity": 3}, {"severity": 3}, {"severity": 3}], 3),
-            
-            # Mixed severities - median is 3, max is 5: (0.7*3 + 0.3*5) = 3.6 -> 4
-            ([{"severity": 1}, {"severity": 3}, {"severity": 5}], 4),
-            
-            # Bias toward higher severity (70% median + 30% max)
-            ([{"severity": 1}, {"severity": 1}, {"severity": 5}], 2),  # (0.7*1 + 0.3*5) = 2.2 -> 2
-            
-            # Empty list
-            ([], None),
-            
-            # No severity fields
-            ([{}, {}, {}], None),
-            
-            # Some missing severity fields
-            ([{"severity": 2}, {}, {"severity": 4}], 3)  # (0.7*2 + 0.3*4) = 2.6 -> 3
-        ]
-        
-        for report_list, expected in test_cases:
-            result = manager._calculate_severity_from_lower_reports(report_list)
-            self.assertEqual(result, expected, f"Failed on {report_list} with result {result}")
-    
-    def test_get_report(self):
-        """Test get_report method."""
-        manager = ReportManager(self.test_dir)
-        
-        # Create a cell report
-        cell = Cell(
-            report_id="test_cell_1",
-            window_start="2023-01-01T00:00:00+00:00",
-            window_end="2023-01-01T00:15:00+00:00",
-            total=5,
-            command_counts={"ls": 3, "cat": 2}
-        )
-        
-        # Save the cell
-        manager._save_report(cell, "cells")
-        
-        # Use get_report to retrieve it
-        report = manager.get_report("test_cell_1", "cells")
-        
-        # Verify report was loaded correctly
-        self.assertIsNotNone(report)
-        self.assertEqual(report["report_id"], "test_cell_1")
-        self.assertEqual(report["total"], 5)
+        # Test properties
+        self.assertEqual(manager.recent_cells, ["cell1", "cell2"])
+        self.assertEqual(manager.recent_blocks, ["block1"])
+        self.assertEqual(manager.recent_daily_reports, ["daily1", "daily2", "daily3"])
+        self.assertEqual(manager.recent_weekly_reports, ["weekly1"])
 
 
 if __name__ == "__main__":

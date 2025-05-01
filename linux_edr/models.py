@@ -393,24 +393,3 @@ Your response should be formatted as follows:
 
 Include clear reasoning for your severity score.
 """
-
-
-# Legacy class for compatibility - can be replaced by DailyReport in new code
-class DailySummary(BaseModel):
-    """Daily summary of system activity compiled from multiple reports."""
-    date: str = Field(..., description="Date of the summary (YYYY-MM-DD)")
-    total_events: int = Field(..., description="Total number of events across all reports")
-    reports_analyzed: int = Field(..., description="Number of reports included in this summary")
-    top_commands: Dict[str, int] = Field(..., description="Most frequently executed commands")
-    suspicious_score: int = Field(..., description="Security risk score (0-100)", ge=0, le=100)
-    analysis: str = Field(..., description="Consolidated AI analysis")
-    severity: Optional[int] = Field(None, description="Severity rating (1-5, where 5 is most severe)", ge=1, le=5)
-    
-    @model_validator(mode='after')
-    def validate_date_format(self) -> 'DailySummary':
-        """Validate date is in YYYY-MM-DD format."""
-        try:
-            datetime.strptime(self.date, "%Y-%m-%d")
-        except ValueError:
-            raise ValueError(f"Invalid date format: {self.date}. Expected YYYY-MM-DD")
-        return self 

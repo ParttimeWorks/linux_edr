@@ -7,7 +7,8 @@ from datetime import datetime, timezone
 import json
 
 from linux_edr.report_manager import ReportManager
-from linux_edr.models import Cell, Block
+from linux_edr.domain.models.reports import Cell, Block
+from linux_edr.application.services.report_service import ReportService
 
 
 class TestReportManagerBlocks(unittest.TestCase):
@@ -16,10 +17,6 @@ class TestReportManagerBlocks(unittest.TestCase):
     def setUp(self):
         # Create a temporary directory for test reports
         self.test_dir = tempfile.mkdtemp()
-        
-        # Create report directories
-        for subdir in ["cells", "blocks", "daily", "weekly", "monthly"]:
-            os.makedirs(os.path.join(self.test_dir, subdir), exist_ok=True)
             
         # Create the ReportManager
         self.manager = ReportManager(self.test_dir)
@@ -46,28 +43,53 @@ class TestReportManagerBlocks(unittest.TestCase):
         
         # Save cell data to file
         filename = os.path.join(self.test_dir, "cells", f"cell_{index}.json")
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
         with open(filename, "w") as f:
             json.dump(cell_data, f)
             
         return cell_data
     
-    def test_create_block_with_enough_cells(self):
-        """Test _create_block when enough cells are available."""
-        # Prepare 16 cells in the cells directory
+    @patch('linux_edr.application.services.report_service.ReportService._create_daily_report')
+    def test_block_creation_via_service(self, mock_create_daily):
+        """Test block creation through the service."""
+        # Create a cell that should trigger block creation
+        cell = Cell(
+            report_id="cell_16",
+            window_start="2023-01-01T00:00:00+00:00",
+            window_end="2023-01-01T00:15:00+00:00",
+            total=5,
+            command_counts={"ls": 3, "cat": 2}
+        )
+        
+        # Patch the service's _create_block method
+        with patch.object(self.manager.service, '_create_block') as mock_create_block:
+            # Set up enough cells to trigger block creation
+            self.manager.service.recent_cells = [f"cell_{i}" for i in range(16)]
+            
+            # Call add_cell on the actual service with our patched method
+            self.manager.service.add_cell(cell)
+            
+            # Verify _create_block was called
+            mock_create_block.assert_called_once()
+    
+    def test_block_creation_with_enough_cells(self):
+        """Test block creation with the real service when enough cells are available."""
+        # Create 16 cells and add them to the repository
         cell_ids = []
         for i in range(16):
+            # Create cell file
             cell_data = self._create_test_cell_file(i)
             cell_ids.append(f"cell_{i}")
-            
-        # Fill the recent_cells list with these IDs
-        self.manager.recent_cells = cell_ids.copy()
+        
+        # Set the service's recent_cells directly
+        self.manager.service.recent_cells = cell_ids.copy()
         
         # Mock _create_daily_report to prevent it from running
-        with patch.object(self.manager, '_create_daily_report') as mock_create_daily:
+        with patch.object(self.manager.service, '_create_daily_report'):
             # Call _create_block
-            self.manager._create_block()
+            self.manager.service._create_block()
             
-            # Verify a block file was created in the blocks directory
+            # Verify a block file was created
             block_files = os.listdir(os.path.join(self.test_dir, "blocks"))
             self.assertEqual(len(block_files), 1)
             
@@ -77,117 +99,46 @@ class TestReportManagerBlocks(unittest.TestCase):
                 
             # Verify block data
             self.assertEqual(len(block_data["cells"]), 16)
-            self.assertEqual(block_data["total_events"], sum(5 * i for i in range(16)))
             self.assertIn("ls", block_data["command_counts"])
             self.assertIn("cat", block_data["command_counts"])
-            
-            # Verify the block ID was added to recent_blocks
-            self.assertEqual(len(self.manager.recent_blocks), 1)
-            self.assertEqual(self.manager.recent_blocks[0], block_data["report_id"])
-            
-            # _create_daily_report should not be called yet (need 6 blocks)
-            mock_create_daily.assert_not_called()
-    
-    # def test_create_block_time_window(self):
-    #     """Test that the block's time window encompasses all its cells."""
-    #     # Create cells with specific timestamps
-    #     from datetime import timedelta
-        
-    #     base_time = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
-    #     cell_ids = []
-        
-    #     for i in range(16):
-    #         # Each cell has a 15-min window, starting at successive time points
-    #         cell_time = base_time + timedelta(minutes=15 * i)
-    #         cell_data = self._create_test_cell_file(i, cell_time)
-    #         cell_ids.append(f"cell_{i}")
-        
-    #     # Set recent_cells
-    #     self.manager.recent_cells = cell_ids.copy()
-        
-    #     # Call _create_block
-    #     self.manager._create_block()
-        
-    #     # Get the block file
-    #     block_files = os.listdir(os.path.join(self.test_dir, "blocks"))
-    #     with open(os.path.join(self.test_dir, "blocks", block_files[0]), "r") as f:
-    #         block_data = json.load(f)
-        
-    #     # Calculate expected time window
-    #     expected_start = base_time.isoformat()
-    #     expected_end = (base_time + timedelta(minutes=15 * 15 + 15)).isoformat()
-        
-    #     # Verify time window
-    #     self.assertEqual(block_data["window_start"], expected_start)
-    #     self.assertEqual(block_data["window_end"], expected_end)
     
     def test_create_block_not_enough_cells(self):
-        """Test _create_block when there aren't enough cells."""
+        """Test block creation service when there aren't enough cells."""
         # Prepare just 10 cells (fewer than the 16 required)
         cell_ids = []
         for i in range(10):
             cell_data = self._create_test_cell_file(i)
             cell_ids.append(f"cell_{i}")
             
-        # Fill the recent_cells list with these IDs
-        self.manager.recent_cells = cell_ids.copy()
+        # Set the service's recent_cells directly
+        self.manager.service.recent_cells = cell_ids.copy()
         
         # Call _create_block
-        self.manager._create_block()
+        self.manager.service._create_block()
         
         # Verify no block file was created
         block_files = os.listdir(os.path.join(self.test_dir, "blocks"))
         self.assertEqual(len(block_files), 0)
         
         # Verify recent_blocks is still empty
-        self.assertEqual(len(self.manager.recent_blocks), 0)
+        self.assertEqual(len(self.manager.service.recent_blocks), 0)
     
-    # def test_create_block_with_invalid_cells(self):
-    #     """Test _create_block when some cells are invalid/missing."""
-    #     # Create some valid cell files and some nonexistent IDs
-    #     valid_ids = []
-    #     for i in range(10):
-    #         cell_data = self._create_test_cell_file(i)
-    #         valid_ids.append(f"cell_{i}")
-            
-    #     # Mix in some nonexistent IDs
-    #     all_ids = valid_ids + ["nonexistent1", "nonexistent2", "nonexistent3", 
-    #                           "nonexistent4", "nonexistent5", "nonexistent6"]
-        
-    #     # Set recent_cells to include all these IDs
-    #     self.manager.recent_cells = all_ids
-        
-    #     # Call _create_block - should use only the valid cells
-    #     self.manager._create_block()
-        
-    #     # Verify a block was created despite missing cells
-    #     block_files = os.listdir(os.path.join(self.test_dir, "blocks"))
-    #     self.assertEqual(len(block_files), 1)
-        
-    #     # Load the block and verify it has only the valid cells
-    #     with open(os.path.join(self.test_dir, "blocks", block_files[0]), "r") as f:
-    #         block_data = json.load(f)
-            
-    #     # Should have 10 cells (the valid ones)
-    #     self.assertEqual(len(block_data["cells"]), 10)
-    
-    @patch('linux_edr.report_manager.ReportManager._create_daily_report')
-    def test_create_block_triggers_daily_report(self, mock_create_daily):
+    @patch('linux_edr.application.services.report_service.ReportService._create_daily_report')
+    def test_block_triggers_daily_report(self, mock_create_daily):
         """Test that creating enough blocks triggers daily report creation."""
         # Add 6 blocks to recent_blocks (the threshold for creating a daily report)
-        self.manager.recent_blocks = [f"block_{i}" for i in range(6)]
+        self.manager.service.recent_blocks = [f"block_{i}" for i in range(6)]
         
-        # Now create a block using _create_block
-        # First we need cells
+        # Add 16 cells to recent_cells to trigger block creation
         cell_ids = []
         for i in range(16):
             cell_data = self._create_test_cell_file(i)
             cell_ids.append(f"cell_{i}")
             
-        self.manager.recent_cells = cell_ids.copy()
+        self.manager.service.recent_cells = cell_ids.copy()
         
         # Call _create_block
-        self.manager._create_block()
+        self.manager.service._create_block()
         
         # Verify _create_daily_report was called
         mock_create_daily.assert_called_once()

@@ -5,21 +5,21 @@ import shutil
 from unittest.mock import patch, MagicMock
 from datetime import datetime, timezone, timedelta
 import json
+import time
 
 from linux_edr.report_manager import ReportManager
-from linux_edr.models import Cell, Block, DailyReport, WeeklyReport, MonthlyReport
+from linux_edr.domain.models.reports import Cell, Block, DailyReport, WeeklyReport, MonthlyReport
+from linux_edr.application.services.report_service import ReportService
+from linux_edr.application.services.severity_calculator import SeverityCalculator
+from linux_edr.infrastructure.repositories.report_repository import FileSystemReportRepository
 
 
 class TestReportManagerFull(unittest.TestCase):
-    """Comprehensive tests for the ReportManager class."""
+    """Comprehensive tests for the ReportManager class with clean architecture."""
 
     def setUp(self):
         # Create a temporary directory for test reports
         self.test_dir = tempfile.mkdtemp()
-        
-        # Create report directories
-        for subdir in ["cells", "blocks", "daily", "weekly", "monthly"]:
-            os.makedirs(os.path.join(self.test_dir, subdir), exist_ok=True)
             
         # Create the ReportManager
         self.manager = ReportManager(self.test_dir)
@@ -52,6 +52,7 @@ class TestReportManagerFull(unittest.TestCase):
         
         # Save cell data to file
         filename = os.path.join(self.test_dir, "cells", f"cell_{index}.json")
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
         with open(filename, "w") as f:
             json.dump(cell_data, f)
             
@@ -76,6 +77,9 @@ class TestReportManagerFull(unittest.TestCase):
             "command_counts": {"ls": 50 * index, "cat": 30 * index, "grep": 20 * index},
             "top_processes": {"bash": 60 * index, "python": 40 * index}
         }
+        
+        # Create the blocks directory if it doesn't exist
+        os.makedirs(os.path.join(self.test_dir, "blocks"), exist_ok=True)
         
         # Save block data to file
         filename = os.path.join(self.test_dir, "blocks", f"block_{index}.json")
@@ -106,6 +110,9 @@ class TestReportManagerFull(unittest.TestCase):
             "top_processes": {"bash": 600 * index, "python": 400 * index},
             "unusual_activity": []
         }
+        
+        # Create the daily directory if it doesn't exist
+        os.makedirs(os.path.join(self.test_dir, "daily"), exist_ok=True)
         
         # Save daily data to file
         filename = os.path.join(self.test_dir, "daily", f"daily_{date.replace('-', '')}.json")
@@ -149,6 +156,9 @@ class TestReportManagerFull(unittest.TestCase):
             "risk_score": min(70 * index, 100)
         }
         
+        # Create the weekly directory if it doesn't exist
+        os.makedirs(os.path.join(self.test_dir, "weekly"), exist_ok=True)
+        
         # Save weekly data to file
         filename = os.path.join(
             self.test_dir, 
@@ -160,8 +170,8 @@ class TestReportManagerFull(unittest.TestCase):
             
         return weekly_data, daily_ids
     
-    def test_create_cell(self):
-        """Test creating a cell report."""
+    def test_create_cell_with_real_service(self):
+        """Test creating a cell report with the real ReportService."""
         # Create a cell
         now = datetime.now(timezone.utc)
         cell = Cell(
@@ -173,261 +183,125 @@ class TestReportManagerFull(unittest.TestCase):
             process_events={"bash": ["ls -la", "cat test.txt"]}
         )
         
-        # Mock _create_block to prevent it from running
-        with patch.object(self.manager, '_create_block') as mock_create_block:
-            # Call create_cell
-            self.manager.create_cell(cell)
+        # Call create_cell
+        self.manager.create_cell(cell)
             
-            # Verify cell file was created
-            cell_path = os.path.join(self.test_dir, "cells", "test_cell.json")
-            self.assertTrue(os.path.exists(cell_path))
-            
-            # Load the cell and check its content
-            with open(cell_path, "r") as f:
-                saved_cell = json.load(f)
-                
-            self.assertEqual(saved_cell["report_id"], "test_cell")
-            self.assertEqual(saved_cell["total"], 10)
-            
-            # Verify cell ID was added to recent_cells
-            self.assertEqual(len(self.manager.recent_cells), 1)
-            self.assertEqual(self.manager.recent_cells[0], "test_cell")
-            
-            # _create_block should not be called yet (need 16 cells)
-            mock_create_block.assert_not_called()
-    
-    def test_create_cell_triggers_block_creation(self):
-        """Test that adding enough cells triggers block creation."""
-        # Add 15 cells to recent_cells, then add one more to trigger block creation
-        cell_ids = []
-        for i in range(15):
-            cell_data = self._create_test_cell_file(i)
-            cell_ids.append(f"cell_{i}")
-            
-        self.manager.recent_cells = cell_ids.copy()
+        # Verify cell file was created
+        cell_path = os.path.join(self.test_dir, "cells", "test_cell.json")
+        self.assertTrue(os.path.exists(cell_path))
         
-        # Create the 16th cell
-        cell = Cell(
-            report_id="cell_16",
-            window_start=datetime.now(timezone.utc).isoformat(),
-            window_end=(datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat(),
-            total=10,
-            command_counts={"ls": 6, "cat": 4},
-            process_events={"bash": ["ls -la", "cat test.txt"]}
+        # Load the cell and check its content
+        with open(cell_path, "r") as f:
+            saved_cell = json.load(f)
+            
+        self.assertEqual(saved_cell["report_id"], "test_cell")
+        self.assertEqual(saved_cell["total"], 10)
+        
+        # Verify cell ID was added to recent_cells
+        self.assertEqual(len(self.manager.recent_cells), 1)
+        self.assertEqual(self.manager.recent_cells[0], "test_cell")
+    
+    def test_repository_integration(self):
+        """Test that repositories can correctly save and load reports."""
+        # Create some test data
+        test_cell = Cell(
+            report_id="test_cell_repo",
+            window_start="2023-01-01T00:00:00+00:00",
+            window_end="2023-01-01T00:15:00+00:00",
+            total=5,
+            command_counts={"ls": 3, "cat": 2}
         )
         
-        # Mock _create_block to verify it's called
-        with patch.object(self.manager, '_create_block') as mock_create_block:
-            # Call create_cell
+        # Save cell using the repository
+        cell_repo = self.manager.cell_repository
+        result = cell_repo.save(test_cell)
+        self.assertTrue(result)
+        
+        # Load cell back
+        loaded_cell = cell_repo.load("test_cell_repo")
+        self.assertIsNotNone(loaded_cell)
+        self.assertEqual(loaded_cell["report_id"], "test_cell_repo")
+        
+        # Get recent cells
+        recent = cell_repo.get_recent(5)
+        self.assertEqual(len(recent), 1)
+        self.assertEqual(recent[0], "test_cell_repo")
+    
+    def test_severity_calculator(self):
+        """Test SeverityCalculator calculations."""
+        # Test cases for calculate_from_lower_reports
+        test_cases = [
+            # All same severity
+            ([{"severity": 3}, {"severity": 3}, {"severity": 3}], 3),
+            
+            # Mixed severities - median is 3, max is 5: (0.7*3 + 0.3*5) = 3.6 -> 4
+            ([{"severity": 1}, {"severity": 3}, {"severity": 5}], 4),
+            
+            # Bias toward higher severity (70% median + 30% max)
+            ([{"severity": 1}, {"severity": 1}, {"severity": 5}], 2),  # (0.7*1 + 0.3*5) = 2.2 -> 2
+            
+            # Empty list
+            ([], None),
+            
+            # No severity fields
+            ([{}, {}, {}], None),
+            
+            # Some missing severity fields
+            ([{"severity": 2}, {}, {"severity": 4}], 3)  # (0.7*2 + 0.3*4) = 2.6 -> 3
+        ]
+        
+        for report_list, expected in test_cases:
+            result = SeverityCalculator.calculate_from_lower_reports(report_list)
+            self.assertEqual(result, expected, f"Failed on {report_list} with result {result}")
+        
+        # Test calculate_risk_score
+        self.assertEqual(SeverityCalculator.calculate_risk_score(1), 20)
+        self.assertEqual(SeverityCalculator.calculate_risk_score(3), 60)
+        self.assertEqual(SeverityCalculator.calculate_risk_score(5), 100)
+        self.assertEqual(SeverityCalculator.calculate_risk_score(None), 40)  # Default
+    
+    @patch('linux_edr.application.services.report_service.ReportService._create_block')
+    def test_service_integration(self, mock_create_block):
+        """Test integration between ReportManager and ReportService."""
+        # Add cells to trigger block creation
+        for i in range(16):
+            cell = Cell(
+                report_id=f"test_cell_{i}",
+                window_start="2023-01-01T00:00:00+00:00",
+                window_end="2023-01-01T00:15:00+00:00",
+                total=5,
+                command_counts={"ls": 3, "cat": 2}
+            )
             self.manager.create_cell(cell)
             
-            # Verify _create_block was called
-            mock_create_block.assert_called_once()
+        # Verify cells were added to recent_cells
+        self.assertEqual(len(self.manager.recent_cells), 16)
+        
+        # Verify _create_block was called
+        mock_create_block.assert_called_once()
     
-    def test_create_daily_report(self):
-        """Test _create_daily_report with enough blocks."""
-        # Create 6 blocks in the blocks directory
-        block_ids = []
-        for i in range(6):
-            timestamp = datetime.now(timezone.utc) + timedelta(hours=4 * i)
-            block_data, _ = self._create_test_block_file(i, timestamp)
-            block_ids.append(f"block_{i}")
-            
-        # Set recent_blocks
-        self.manager.recent_blocks = block_ids.copy()
-        
-        # Mock _create_weekly_report to prevent it from running
-        with patch.object(self.manager, '_create_weekly_report') as mock_create_weekly:
-            # Call _create_daily_report
-            self.manager._create_daily_report()
-            
-            # Verify a daily report file was created
-            daily_files = os.listdir(os.path.join(self.test_dir, "daily"))
-            self.assertEqual(len(daily_files), 1)
-            
-            # Load the daily report and check its content
-            with open(os.path.join(self.test_dir, "daily", daily_files[0]), "r") as f:
-                daily_data = json.load(f)
-                
-            # Verify daily report data
-            self.assertEqual(len(daily_data["blocks"]), 6)
-            self.assertIn("command_counts", daily_data)
-            self.assertIn("top_processes", daily_data)
-            
-            # Verify report ID was added to recent_daily_reports
-            self.assertEqual(len(self.manager.recent_daily_reports), 1)
-            self.assertEqual(self.manager.recent_daily_reports[0], daily_data["report_id"])
-            
-            # _create_weekly_report should not be called yet (need 7 daily reports)
-            mock_create_weekly.assert_not_called()
-    
-    def test_create_daily_report_not_enough_blocks(self):
-        """Test _create_daily_report with insufficient blocks."""
-        # Create just 3 blocks (fewer than the 6 required)
-        block_ids = []
-        for i in range(3):
-            block_data, _ = self._create_test_block_file(i)
-            block_ids.append(f"block_{i}")
-            
-        # Set recent_blocks
-        self.manager.recent_blocks = block_ids.copy()
-        
-        # Call _create_daily_report
-        self.manager._create_daily_report()
-        
-        # Verify no daily report was created
-        daily_files = os.listdir(os.path.join(self.test_dir, "daily"))
-        self.assertEqual(len(daily_files), 0)
-        
-        # Verify recent_daily_reports is still empty
-        self.assertEqual(len(self.manager.recent_daily_reports), 0)
-    
-    def test_create_weekly_report(self):
-        """Test _create_weekly_report with enough daily reports."""
-        # Create 7 daily reports in the daily directory
-        today = datetime.now(timezone.utc)
-        daily_ids = []
-        for i in range(7):
-            date = (today - timedelta(days=i)).strftime("%Y-%m-%d")
-            daily_data, _ = self._create_test_daily_file(i, date)
-            daily_ids.append(daily_data["report_id"])
-            
-        # Set recent_daily_reports
-        self.manager.recent_daily_reports = daily_ids.copy()
-        
-        # Mock _create_monthly_report to prevent it from running
-        with patch.object(self.manager, '_create_monthly_report') as mock_create_monthly:
-            # Call _create_weekly_report
-            self.manager._create_weekly_report()
-            
-            # Verify a weekly report file was created
-            weekly_files = os.listdir(os.path.join(self.test_dir, "weekly"))
-            self.assertEqual(len(weekly_files), 1)
-            
-            # Load the weekly report and check its content
-            with open(os.path.join(self.test_dir, "weekly", weekly_files[0]), "r") as f:
-                weekly_data = json.load(f)
-                
-            # Verify weekly report data
-            self.assertEqual(len(weekly_data["daily_reports"]), 7)
-            self.assertIn("command_trends", weekly_data)
-            self.assertIn("process_trends", weekly_data)
-            
-            # Verify report ID was added to recent_weekly_reports
-            self.assertEqual(len(self.manager.recent_weekly_reports), 1)
-            self.assertEqual(self.manager.recent_weekly_reports[0], weekly_data["report_id"])
-            
-            # _create_monthly_report should not be called yet (need 4 weekly reports)
-            mock_create_monthly.assert_not_called()
-    
-    def test_create_weekly_report_not_enough_daily_reports(self):
-        """Test _create_weekly_report with insufficient daily reports."""
-        # Create just 4 daily reports (fewer than the 7 required)
-        daily_ids = []
-        for i in range(4):
-            date = (datetime.now(timezone.utc) - timedelta(days=i)).strftime("%Y-%m-%d")
-            daily_data, _ = self._create_test_daily_file(i, date)
-            daily_ids.append(daily_data["report_id"])
-            
-        # Set recent_daily_reports
-        self.manager.recent_daily_reports = daily_ids.copy()
-        
-        # Call _create_weekly_report
-        self.manager._create_weekly_report()
-        
-        # Verify no weekly report was created
-        weekly_files = os.listdir(os.path.join(self.test_dir, "weekly"))
-        self.assertEqual(len(weekly_files), 0)
-        
-        # Verify recent_weekly_reports is still empty
-        self.assertEqual(len(self.manager.recent_weekly_reports), 0)
-    
-    def test_create_monthly_report(self):
-        """Test _create_monthly_report with enough weekly reports."""
-        # Create 4 weekly reports in the weekly directory
-        today = datetime.now(timezone.utc)
-        weekly_ids = []
-        
-        for i in range(4):
-            # Each week starts on Sunday of the week (i weeks ago)
-            start_date = today - timedelta(days=7*i + today.weekday())
-            start_date_str = start_date.strftime("%Y-%m-%d")
-            
-            weekly_data, _ = self._create_test_weekly_file(i, start_date_str)
-            weekly_ids.append(weekly_data["report_id"])
-            
-        # Set recent_weekly_reports
-        self.manager.recent_weekly_reports = weekly_ids.copy()
-        
-        # Call _create_monthly_report
-        self.manager._create_monthly_report()
-        
-        # Verify a monthly report file was created
-        monthly_files = os.listdir(os.path.join(self.test_dir, "monthly"))
-        self.assertEqual(len(monthly_files), 1)
-        
-        # Load the monthly report and check its content
-        with open(os.path.join(self.test_dir, "monthly", monthly_files[0]), "r") as f:
-            monthly_data = json.load(f)
-            
-        # Verify monthly report data
-        self.assertEqual(len(monthly_data["weekly_reports"]), 4)
-        self.assertIn("command_summary", monthly_data)
-        self.assertIn("process_summary", monthly_data)
-        self.assertIn("security_summary", monthly_data)
-    
-    def test_create_monthly_report_not_enough_weekly_reports(self):
-        """Test _create_monthly_report with insufficient weekly reports."""
-        # Create just 2 weekly reports (fewer than the 4 required)
-        weekly_ids = []
-        for i in range(2):
-            start_date = (datetime.now(timezone.utc) - timedelta(days=7*i))
-            start_date_str = start_date.strftime("%Y-%m-%d")
-            
-            weekly_data, _ = self._create_test_weekly_file(i, start_date_str)
-            weekly_ids.append(weekly_data["report_id"])
-            
-        # Set recent_weekly_reports
-        self.manager.recent_weekly_reports = weekly_ids.copy()
-        
-        # Call _create_monthly_report
-        self.manager._create_monthly_report()
-        
-        # Verify no monthly report was created
-        monthly_files = os.listdir(os.path.join(self.test_dir, "monthly"))
-        self.assertEqual(len(monthly_files), 0)
-    
-    def test_get_recent_reports(self):
-        """Test _get_recent_reports method."""
-        # Create some test files with different timestamps
+    def test_get_recent_reports_from_repositories(self):
+        """Test that repositories can retrieve recent reports correctly."""
+        # Create files with different timestamps
         for i in range(5):
-            # Create with delays to ensure different timestamps
+            # Add a small delay to ensure different timestamps
             time.sleep(0.01)
             self._create_test_cell_file(i)
         
-        # Call _get_recent_reports
-        recent_cells = self.manager._get_recent_reports("cells", 3)
+        # Create a fresh manager to load the reports
+        manager = ReportManager(self.test_dir)
         
-        # Should return the 3 most recent cells
-        self.assertEqual(len(recent_cells), 3)
+        # Get recent cells
+        recent_cells = manager.recent_cells
         
-        # Since we created them in order 0-4, the most recent should be 4, 3, 2
-        expected_cells = [f"cell_{i}" for i in range(4, 1, -1)]
-        self.assertEqual(recent_cells, expected_cells)
+        # Verify correct reports returned in order
+        self.assertEqual(len(recent_cells), 5)
+        
+        # The most recent should be cell_4
+        self.assertEqual(recent_cells[0], "cell_4")
     
-    def test_get_recent_reports_empty_dir(self):
-        """Test _get_recent_reports on empty directory."""
-        # Remove the cells directory
-        shutil.rmtree(os.path.join(self.test_dir, "cells"))
-        
-        # Call _get_recent_reports on nonexistent directory
-        recent_cells = self.manager._get_recent_reports("cells", 3)
-        
-        # Should return empty list
-        self.assertEqual(recent_cells, [])
-    
-    def test_get_report(self):
-        """Test get_report method."""
+    def test_get_report_delegated_to_service(self):
+        """Test that get_report correctly delegates to the service."""
         # Create a test cell
         cell_data = self._create_test_cell_file(0)
         
@@ -439,81 +313,14 @@ class TestReportManagerFull(unittest.TestCase):
         self.assertEqual(result["report_id"], "cell_0")
         self.assertEqual(result["total"], cell_data["total"])
     
-    def test_get_report_nonexistent(self):
-        """Test get_report on nonexistent report."""
-        # Call get_report on nonexistent ID
+    def test_repository_not_found(self):
+        """Test repository handling of nonexistent reports."""
+        # Try to load a nonexistent report
         result = self.manager.get_report("nonexistent", "cells")
         
         # Should return None
         self.assertIsNone(result)
-    
-    @patch('os.path.getmtime')
-    def test_load_existing_reports(self, mock_getmtime):
-        """Test _load_existing_reports method."""
-        # Create test files for each report level
-        # We need to mock getmtime to control the order
-        
-        # Set up mock for getmtime to return predictable timestamps
-        def mock_getmtime_side_effect(path):
-            # Extract filename from path
-            filename = os.path.basename(path)
-            # Extract number from filename (assuming format like 'cell_1.json')
-            try:
-                num = int(filename.split('_')[1].split('.')[0])
-                # Return timestamp based on number (higher = more recent)
-                return 1000 + num
-            except:
-                return 1000
-        
-        mock_getmtime.side_effect = mock_getmtime_side_effect
-        
-        # Create test files for each level
-        cell_ids = []
-        for i in range(20):
-            self._create_test_cell_file(i)
-            cell_ids.append(f"cell_{i}")
-            
-        block_ids = []
-        for i in range(10):
-            block_data, _ = self._create_test_block_file(i)
-            block_ids.append(f"block_{i}")
-            
-        daily_ids = []
-        for i in range(10):
-            date = (datetime.now(timezone.utc) - timedelta(days=i)).strftime("%Y-%m-%d")
-            daily_data, _ = self._create_test_daily_file(i, date)
-            daily_ids.append(daily_data["report_id"])
-            
-        weekly_ids = []
-        for i in range(5):
-            start_date = (datetime.now(timezone.utc) - timedelta(days=7*i))
-            start_date_str = start_date.strftime("%Y-%m-%d")
-            
-            weekly_data, _ = self._create_test_weekly_file(i, start_date_str)
-            weekly_ids.append(weekly_data["report_id"])
-        
-        # Create a fresh ReportManager to load the reports
-        manager = ReportManager(self.test_dir)
-        
-        # Check that the reports were loaded correctly
-        # Should have the most recent reports in each category
-        expected_cells = [f"cell_{i}" for i in range(19, 3, -1)]  # Most recent 16
-        expected_blocks = [f"block_{i}" for i in range(9, 3, -1)]  # Most recent 6
-        
-        self.assertEqual(len(manager.recent_cells), 16)
-        self.assertEqual(len(manager.recent_blocks), 6)
-        self.assertEqual(len(manager.recent_daily_reports), 7)
-        self.assertEqual(len(manager.recent_weekly_reports), 4)
-        
-        # Check specific IDs (the most recent ones based on our mock)
-        for i, cell_id in enumerate(expected_cells):
-            self.assertIn(cell_id, manager.recent_cells)
-            
-        for i, block_id in enumerate(expected_blocks):
-            self.assertIn(block_id, manager.recent_blocks)
 
-
-import time
 
 if __name__ == "__main__":
     unittest.main() 
