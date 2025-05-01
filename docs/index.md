@@ -17,12 +17,6 @@ Linux EDR captures process execution data through Linux's kernel tracing capabil
 - **Production-Ready**: Comprehensive error handling with graceful recovery from failures
 - **Privacy-Focused**: Collects only necessary command execution data (see [Privacy Policy](privacy.md))
 
-## Installation
-
-```bash
-pip install linux-edr
-```
-
 ## Quick Start
 
 ```bash
