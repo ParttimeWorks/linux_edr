@@ -207,4 +207,8 @@ class TraceReader:
 
     def __del__(self) -> None:
         """Ensure resources are freed when object is garbage collected."""
-        self.close()
+        try:
+            self.close()
+        except Exception:
+            # Suppress any exceptions during garbage collection
+            pass

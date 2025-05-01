@@ -35,7 +35,8 @@ jobs:
           mypy linux_edr/
       - name: Test with pytest
         run: |
-          uv run pytest --cov=linux_edr --cov-report=xml --timeout=60 --color=no
+          uv run pytest --cov=linux_edr
+          uv run python -m coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
