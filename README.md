@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python Type Checked](https://img.shields.io/badge/type%20checked-mypy-blue.svg)](https://github.com/python/mypy)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Monthly Build](https://github.com/yourusername/linux-edr/actions/workflows/test-and-publish.yml/badge.svg?event=schedule)](https://github.com/yourusername/linux-edr/actions/workflows/test-and-publish.yml)
+[![Documentation](https://github.com/ParttimeWorks/linux_edr/actions/workflows/docs.yml/badge.svg)](https://github.com/ParttimeWorks/linux_edr/actions/workflows/docs.yml)
 
 A lightweight yet comprehensive Endpoint Detection and Response (EDR) solution for Linux systems that monitors command execution, analyzes system behavior, and provides actionable security insights with minimal performance impact.
 
