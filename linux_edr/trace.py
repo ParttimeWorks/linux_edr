@@ -9,6 +9,7 @@ from typing import Generator, Optional
 # Make mock available for tests
 import builtins as _builtins
 import unittest.mock as _unittest_mock
+
 _builtins.mock = _unittest_mock
 
 # Default path to the kernel's trace_pipe
@@ -18,18 +19,19 @@ DEFAULT_TIMEOUT = 10
 
 logger = logging.getLogger(__name__)
 
+
 class TraceReader:
     """
     Non-blocking reader for trace_pipe via selectors.
-    
-    This class provides an iterator interface to read from the kernel trace_pipe 
+
+    This class provides an iterator interface to read from the kernel trace_pipe
     without blocking, using the selectors module for efficient I/O multiplexing.
     """
-    
+
     def __init__(self, path: str = TRACE_PATH, read_timeout: float = DEFAULT_TIMEOUT):
         """
         Initialize the trace reader.
-        
+
         Args:
             path: Path to the trace_pipe file
             read_timeout: Maximum time to wait for data in seconds (None means wait forever)
@@ -39,27 +41,31 @@ class TraceReader:
         self.fd: Optional[int] = None
         self.read_timeout = read_timeout
         self._setup_fd()
-        
+
     def _setup_fd(self) -> None:
         """Set up the file descriptor for non-blocking reads."""
         try:
             if not os.path.exists(self.path):
-                logger.warning(f"Trace path {self.path} does not exist. Will attempt to open anyway.")
-                
+                logger.warning(
+                    f"Trace path {self.path} does not exist. Will attempt to open anyway."
+                )
+
             # Open the file in non-blocking mode
             self.fd = os.open(self.path, os.O_RDONLY | os.O_NONBLOCK)
-            
+
             # Register the file-descriptor with the selector while gracefully
             # handling the special mocking strategy used in the test-suite (a
             # ``side_effect`` that takes *no* positional arguments).
             self._register_fd()
-            
+
             logger.debug(f"Successfully opened trace pipe at {self.path}")
         except PermissionError as e:
             # Log as *warning* rather than *error* so that callers like
             # ``_reopen_if_needed`` can emit their own error message without
             # inflating the error count expected by the unit-tests.
-            logger.warning(f"Permission denied opening {self.path}. Run with sudo or correct permissions.")
+            logger.warning(
+                f"Permission denied opening {self.path}. Run with sudo or correct permissions."
+            )
             raise
         except (FileNotFoundError, OSError) as e:
             # Treat ENOENT (No such file or directory) similarly to FileNotFoundError to allow retry logic
@@ -76,7 +82,9 @@ class TraceReader:
                 try:
                     self.fd = os.open(self.path, os.O_RDONLY | os.O_NONBLOCK)
                     self._register_fd()
-                    logger.debug(f"Successfully opened trace pipe at {self.path} on retry {attempt}")
+                    logger.debug(
+                        f"Successfully opened trace pipe at {self.path} on retry {attempt}"
+                    )
                     break
                 except FileNotFoundError:
                     if attempt == max_retries:
@@ -94,7 +102,7 @@ class TraceReader:
             # single error call (see ``test_reopen_if_needed_with_exception``).
             logger.debug(f"Failed to open trace pipe at {self.path}: {e}")
             raise
-    
+
     def _register_fd(self) -> None:
         """Register *self.fd* for read-events, coping with mocked selectors.
 
@@ -125,7 +133,7 @@ class TraceReader:
     def _reopen_if_needed(self) -> bool:
         """
         Reopen the file descriptor if it's closed or invalid.
-        
+
         Returns:
             True if reopened successfully, False otherwise
         """
@@ -139,7 +147,7 @@ class TraceReader:
                         os.close(self.fd)
                     except Exception as e:
                         logger.warning(f"Error cleaning up old file descriptor: {e}")
-                
+
                 # Wait briefly before reopening
                 time.sleep(1)
                 self._setup_fd()
@@ -152,14 +160,14 @@ class TraceReader:
     def __iter__(self) -> Generator[str, None, None]:
         """
         Iterate over lines from the trace pipe.
-        
+
         Yields:
             Lines from the trace pipe, one at a time
         """
         if self.fd is None:
             logger.error("Cannot iterate: file descriptor is not open")
             return
-            
+
         try:
             while True:
                 # Ensure file still exists; if not, attempt reopen.
@@ -168,15 +176,15 @@ class TraceReader:
                         logger.warning("Trace file unavailable, will retry in 5 seconds")
                         time.sleep(5)
                         continue
-                    
+
                 try:
                     # Wait for read events with timeout
                     events = self.sel.select(timeout=self.read_timeout)
-                    
+
                     if not events:
                         # No events within timeout, just continue
                         continue
-                        
+
                     for key, _ in events:
                         try:
                             data = os.read(key.fd, 4096)
@@ -185,14 +193,16 @@ class TraceReader:
                                 self._reopen_if_needed()
                                 # Return from iterator to avoid infinite loop
                                 return
-                                
+
                             # Decode safely with error handling
                             try:
-                                text = data.decode('utf-8', errors='replace')
+                                text = data.decode("utf-8", errors="replace")
                             except UnicodeDecodeError as e:
-                                logger.warning(f"Unicode decode error: {e}, using replacement chars")
-                                text = data.decode('utf-8', errors='replace')
-                                
+                                logger.warning(
+                                    f"Unicode decode error: {e}, using replacement chars"
+                                )
+                                text = data.decode("utf-8", errors="replace")
+
                             for line in text.splitlines():
                                 if line.strip():  # Skip empty lines
                                     yield line
@@ -239,7 +249,7 @@ class TraceReader:
                 logger.warning(f"Error closing trace reader: {e}")
             finally:
                 self.fd = None
-                
+
     def __del__(self) -> None:
         """Ensure resources are freed when object is garbage collected."""
-        self.close() 
+        self.close()

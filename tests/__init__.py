@@ -1,1 +1,1 @@
-"""Unit tests for the Linux EDR system.""" 
+"""Unit tests for the Linux EDR system."""

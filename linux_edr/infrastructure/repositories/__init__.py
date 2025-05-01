@@ -2,4 +2,4 @@
 
 from .report_repository import ReportRepository, FileSystemReportRepository
 
-__all__ = ['ReportRepository', 'FileSystemReportRepository'] 
+__all__ = ["ReportRepository", "FileSystemReportRepository"]

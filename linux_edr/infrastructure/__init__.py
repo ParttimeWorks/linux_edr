@@ -1,1 +1,1 @@
-"""Infrastructure layer of the Linux EDR system.""" 
+"""Infrastructure layer of the Linux EDR system."""

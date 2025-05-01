@@ -7,45 +7,61 @@ from .models import SummaryReport, Cell, Block, DailyReport, WeeklyReport, Month
 
 logger = logging.getLogger(__name__)
 
+
 class Reporter:
-    def __init__(self, api_key: str = None, output_file: str = None, model: str = "gpt-4o-mini"):
+    def __init__(self, api_key: str = None, model: str = "gpt-4o-mini"):
         self.client = OpenAI(api_key=api_key) if api_key else None
-        self.output_file = output_file
         self.model = model
 
-    def save_json(self, summary: Union[SummaryReport, Cell, Block, DailyReport, WeeklyReport, MonthlyReport], 
-                 include_raw_events: bool = False, 
-                 raw_events: Optional[List[Dict[str, Any]]] = None) -> None:
-        """Save summary report to a JSON file."""
-        if not self.output_file:
-            return
-            
+    def send_llm(
+        self, report: Union[SummaryReport, Cell, Block, DailyReport, WeeklyReport, MonthlyReport]
+    ) -> Tuple[Optional[str], Optional[int]]:
+        """
+        Send report to LLM for analysis.
+
+        Args:
+            report: Report to analyze
+
+        Returns:
+            Tuple of (analysis text, severity score) or (None, None) if error
+        """
+        if not self.client:
+            logger.warning("OpenAI client not configured, skipping LLM analysis")
+            return None, None
+
+        prompt = report.to_prompt()
         try:
-            # Convert to dict for serialization
-            data = summary.model_dump()
-            
-            # Add raw events if requested and not already in summary
-            if include_raw_events and raw_events and not data.get("raw_events"):
-                data["raw_events"] = raw_events
-                
-            # Make sure process_events is included
-            if not data.get("process_events") and hasattr(summary, "process_events") and summary.process_events:
-                data["process_events"] = summary.process_events
-                
-            with open(self.output_file, "a") as f:
-                f.write(json.dumps(data) + "\n")
-                
-            logger.debug(f"Saved report to {self.output_file}")
+            logger.debug(f"Sending prompt to {self.model}")
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a security analyst specializing in Linux system activity. Analyze command execution patterns to identify potential security concerns. Format your response with a summary, severity score (1-5), and key findings.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.3,
+                max_tokens=500,
+            )
+            analysis = resp.choices[0].message.content
+            severity = self.extract_severity(analysis)
+
+            logger.info(f"LLM analysis complete (severity: {severity if severity else 'unknown'})")
+
+            return analysis, severity
+
         except Exception as e:
-            logger.error(f"Failed writing report: {e}")
+            logger.error(f"LLM error: {e}")
+            return None, None
 
     def extract_severity(self, analysis: str) -> Optional[int]:
         """
         Extract severity score from analysis text.
-        
+
         Args:
             analysis: The analysis text from LLM
-            
+
         Returns:
             Severity score (1-5) or None if not found
         """
@@ -57,9 +73,9 @@ class Reporter:
             r"severity rating(?:\s+is)?:?\s*(\d+)",  # Modified to better match "severity rating is X"
             r"severity score:?\s*(\d+)",
             r"security score is\s*(\d+)",
-            r"rate the severity as\s*(\d+)"
+            r"rate the severity as\s*(\d+)",
         ]
-        
+
         for pattern in patterns:
             if match := re.search(pattern, analysis, re.IGNORECASE):
                 try:
@@ -68,60 +84,15 @@ class Reporter:
                         return score
                 except ValueError:
                     continue
-        
+
         return None
 
-    def send_llm(self, report: Union[SummaryReport, Cell, Block, DailyReport, WeeklyReport, MonthlyReport]) -> Tuple[Optional[str], Optional[int]]:
-        """
-        Send report to LLM for analysis.
-        
-        Args:
-            report: Report to analyze
-            
-        Returns:
-            Tuple of (analysis text, severity score) or (None, None) if error
-        """
-        if not self.client:
-            logger.warning("OpenAI client not configured, skipping LLM analysis")
-            return None, None
-            
-        prompt = report.to_prompt()
-        try:
-            logger.debug(f"Sending prompt to {self.model}")
-            resp = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role":"system","content":"You are a security analyst specializing in Linux system activity. Analyze command execution patterns to identify potential security concerns. Format your response with a summary, severity score (1-5), and key findings."},
-                    {"role":"user","content":prompt}
-                ],
-                temperature=0.3,
-                max_tokens=500,
-            )
-            analysis = resp.choices[0].message.content
-            severity = self.extract_severity(analysis)
-            
-            logger.info(f"LLM analysis complete (severity: {severity if severity else 'unknown'})")
-            
-            # Save the analysis to the report file if available
-            if self.output_file:
-                try:
-                    with open(self.output_file + ".analysis", "a") as f:
-                        f.write(f"--- Analysis for report {report.report_id} (Severity: {severity if severity else 'unknown'}) ---\n")
-                        f.write(analysis)
-                        f.write("\n\n")
-                except Exception as e:
-                    logger.error(f"Failed to save analysis: {e}")
-            
-            return analysis, severity
-                    
-        except Exception as e:
-            logger.error(f"LLM error: {e}")
-            return None, None
-    
-    def analyze_report(self, report: Union[SummaryReport, Cell, Block, DailyReport, WeeklyReport, MonthlyReport]) -> None:
+    def analyze_report(
+        self, report: Union[SummaryReport, Cell, Block, DailyReport, WeeklyReport, MonthlyReport]
+    ) -> None:
         """
         Send a report to LLM for analysis and update it with the results.
-        
+
         Args:
             report: The report to analyze
         """
@@ -131,4 +102,6 @@ class Reporter:
             report.analysis = analysis
             if severity:
                 report.severity = severity
-            logger.debug(f"Updated {type(report).__name__} {report.report_id} with analysis (severity: {severity if severity else 'unknown'})") 
+            logger.debug(
+                f"Updated {type(report).__name__} {report.report_id} with analysis (severity: {severity if severity else 'unknown'})"
+            )

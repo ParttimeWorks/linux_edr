@@ -8,12 +8,12 @@ from .monthly_report import MonthlyReport
 from .summary_report import SummaryReport, CommandLine, ProcessEvents
 
 __all__ = [
-    'CommandLine',
-    'ProcessEvents',
-    'SummaryReport',
-    'Cell',
-    'Block',
-    'DailyReport',
-    'WeeklyReport',
-    'MonthlyReport',
-] 
+    "CommandLine",
+    "ProcessEvents",
+    "SummaryReport",
+    "Cell",
+    "Block",
+    "DailyReport",
+    "WeeklyReport",
+    "MonthlyReport",
+]

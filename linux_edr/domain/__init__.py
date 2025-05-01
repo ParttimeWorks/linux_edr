@@ -1,1 +1,1 @@
-"""Domain layer of the Linux EDR system.""" 
+"""Domain layer of the Linux EDR system."""

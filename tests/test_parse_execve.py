@@ -8,7 +8,7 @@ class TestParseExecve(unittest.TestCase):
     def test_valid_execve_parsing(self):
         """A well-formed trace line should yield a populated ExecveEvent."""
         line = (
-            '1618921738.123456 [1234] some-process-1234  D  0.000000: sys_enter_execve: '
+            "1618921738.123456 [1234] some-process-1234  D  0.000000: sys_enter_execve: "
             '("ls" "-la" "/tmp")'
         )
         evt = parse_execve(line)
@@ -22,7 +22,7 @@ class TestParseExecve(unittest.TestCase):
     def test_no_execve_returns_none(self):
         """Lines that do not include an execve call should return None."""
         line = (
-            '1618921738.123456 [1234] some-process-1234  D  0.000000: sys_enter_openat: '
+            "1618921738.123456 [1234] some-process-1234  D  0.000000: sys_enter_openat: "
             '("/etc/passwd")'
         )
         self.assertIsNone(parse_execve(line))
@@ -30,7 +30,7 @@ class TestParseExecve(unittest.TestCase):
     def test_invalid_pid_returns_none(self):
         """If the PID cannot be parsed as an int, parse_execve should return None."""
         line = (
-            '1618921738.123456 [notanint] some-process  D  0.000000: sys_enter_execve: '
+            "1618921738.123456 [notanint] some-process  D  0.000000: sys_enter_execve: "
             '("bash" "-c" "echo test")'
         )
         self.assertIsNone(parse_execve(line))
@@ -42,4 +42,4 @@ class TestParseExecve(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main() 
+    unittest.main()
