@@ -30,14 +30,23 @@ nav:
     - Configuration: configuration.md
   - Architecture:
     - Overview: architecture/overview.md
+    - Clean Architecture: architecture/clean-architecture.md
     - Hierarchical Reporting: architecture/reporting.md
     - AI Analysis: architecture/ai-analysis.md
   - API Reference:
-    - TraceReader: api/trace.md
-    - Aggregator: api/aggregator.md
-    - Report Manager: api/report_manager.md
-    - Models: api/models.md
-    - Reporter: api/reporter.md
+    - Domain:
+      - Models: api/domain/models.md
+    - Application:
+      - Services: api/application/services.md
+      - Use Cases: api/application/use_cases.md
+    - Infrastructure:
+      - Repositories: api/infrastructure/repositories.md
+    - Interfaces:
+      - Controllers: api/interfaces/controllers.md
+    - Legacy APIs:
+      - Report Manager: api/report_manager.md
+      - Models: api/models.md
+      - Reporter: api/reporter.md
   - Development: development.md
   - Privacy Policy: privacy.md
 
