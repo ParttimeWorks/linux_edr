@@ -41,6 +41,8 @@ nav:
       - Use Cases: api/application/use_cases.md
     - Infrastructure:
       - Repositories: api/infrastructure/repositories.md
+      - Trace Reader: api/trace.md
+      - Aggregator: api/aggregator.md
     - Interfaces:
       - Controllers: api/interfaces/controllers.md
     - Legacy APIs:
@@ -48,7 +50,8 @@ nav:
       - Models: api/models.md
       - Reporter: api/reporter.md
   - Development: development.md
-  - Privacy Policy: privacy.md
+  - Reporting: reporting.md
+  - Privacy: privacy.md
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -81,6 +84,7 @@ plugins:
             docstring_style: google
             show_source: true
             show_signature_annotations: true
+            show_if_no_docstring: true
   - git-revision-date-localized:
       enable_creation_date: true
 
