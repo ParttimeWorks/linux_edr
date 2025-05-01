@@ -116,6 +116,9 @@ class TestApp(unittest.TestCase):
             ("REPORTS", "reports_dir"): "test_reports"
         }.get((section, option), default)
         
+        # Get the reporter instance that will be passed to ReportManager
+        mock_reporter_instance = mock_reporter.return_value
+        
         # Create LinuxEDRApp instance
         app = LinuxEDRApp(config_path="test_config.ini")
         
@@ -129,7 +132,7 @@ class TestApp(unittest.TestCase):
         mock_trace_reader.assert_called_once_with(path="/test/trace")
         mock_aggregator.assert_called_once_with(maxlen=5000)
         mock_reporter.assert_called_once_with(api_key="test_key", output_file="test.json", model="test-model")
-        mock_report_manager.assert_called_once_with("test_reports")
+        mock_report_manager.assert_called_once_with("test_reports", reporter=mock_reporter_instance)
         
         # Verify scheduler was configured
         mock_scheduler_instance = mock_scheduler.return_value

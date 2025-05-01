@@ -24,6 +24,9 @@ class TestAppSummarize(unittest.TestCase):
         mock_rm_instance = mock_report_manager.return_value
         mock_scheduler_instance = mock_scheduler.return_value
         
+        # Mock send_llm to return a tuple (analysis, severity)
+        mock_rep_instance.send_llm.return_value = ("Test analysis", 3)
+        
         # Setup mock data
         events = [
             {"command": "ls", "args": ["-la"], "pid": 1000},
@@ -92,6 +95,9 @@ class TestAppSummarize(unittest.TestCase):
         # Verify send_llm was called
         mock_rep_instance.send_llm.assert_called_once_with(mock_summary)
         
+        # Verify severity was set on the summary
+        self.assertEqual(mock_summary.severity, 3)
+        
         # Verify cell was added to report manager
         mock_rm_instance.create_cell.assert_called_once_with(mock_cell)
 
@@ -148,6 +154,9 @@ class TestAppSummarize(unittest.TestCase):
         mock_rm_instance = mock_report_manager.return_value
         mock_scheduler_instance = mock_scheduler.return_value
         
+        # Mock send_llm to return a tuple (analysis, severity)
+        mock_rep_instance.send_llm.return_value = ("Large event analysis", 4)
+        
         # Create a large number of events
         events = [{"command": f"cmd{i}", "pid": i} for i in range(200)]
         
@@ -189,6 +198,12 @@ class TestAppSummarize(unittest.TestCase):
             include_raw_events=False,
             raw_events=None
         )
+        
+        # Verify send_llm was called
+        mock_rep_instance.send_llm.assert_called_once_with(mock_summary)
+        
+        # Verify severity was set on the summary
+        self.assertEqual(mock_summary.severity, 4)
 
 
 if __name__ == "__main__":

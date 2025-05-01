@@ -39,6 +39,17 @@ class TestReportManager(unittest.TestCase):
         self.assertEqual(manager.recent_blocks, [])
         self.assertEqual(manager.recent_daily_reports, [])
         self.assertEqual(manager.recent_weekly_reports, [])
+        
+        # Verify reporter is None
+        self.assertIsNone(manager.reporter)
+
+    def test_init_with_reporter(self):
+        """Test initialization with a reporter instance."""
+        mock_reporter = MagicMock()
+        manager = ReportManager(self.test_dir, reporter=mock_reporter)
+        
+        # Verify reporter is set
+        self.assertEqual(manager.reporter, mock_reporter)
 
     def test_save_and_load_report(self):
         """Test saving and loading a report."""
@@ -131,6 +142,26 @@ class TestReportManager(unittest.TestCase):
         self.assertEqual(len(manager.recent_cells), 1)
         self.assertEqual(manager.recent_cells[0], "test_cell_1")
 
+    def test_create_cell_with_reporter(self):
+        """Test create_cell method with a reporter."""
+        mock_reporter = MagicMock()
+        manager = ReportManager(self.test_dir, reporter=mock_reporter)
+        
+        # Create a cell without analysis
+        cell = Cell(
+            report_id="test_cell_1",
+            window_start="2023-01-01T00:00:00+00:00",
+            window_end="2023-01-01T00:15:00+00:00",
+            total=5,
+            command_counts={"ls": 3, "cat": 2}
+        )
+        
+        # Call create_cell
+        manager.create_cell(cell)
+        
+        # Verify reporter.analyze_report was called
+        mock_reporter.analyze_report.assert_called_once_with(cell)
+
     def test_cell_limit(self):
         """Test that recent_cells is limited to the correct size."""
         manager = ReportManager(self.test_dir)
@@ -171,6 +202,34 @@ class TestReportManager(unittest.TestCase):
         # _create_block should have been called
         mock_create_block.assert_called_once()
         
+    def test_calculate_severity_from_lower_reports(self):
+        """Test severity calculation from lower-level reports."""
+        manager = ReportManager(self.test_dir)
+        
+        test_cases = [
+            # All same severity
+            ([{"severity": 3}, {"severity": 3}, {"severity": 3}], 3),
+            
+            # Mixed severities - median is 3, max is 5: (0.7*3 + 0.3*5) = 3.6 -> 4
+            ([{"severity": 1}, {"severity": 3}, {"severity": 5}], 4),
+            
+            # Bias toward higher severity (70% median + 30% max)
+            ([{"severity": 1}, {"severity": 1}, {"severity": 5}], 2),  # (0.7*1 + 0.3*5) = 2.2 -> 2
+            
+            # Empty list
+            ([], None),
+            
+            # No severity fields
+            ([{}, {}, {}], None),
+            
+            # Some missing severity fields
+            ([{"severity": 2}, {}, {"severity": 4}], 3)  # (0.7*2 + 0.3*4) = 2.6 -> 3
+        ]
+        
+        for report_list, expected in test_cases:
+            result = manager._calculate_severity_from_lower_reports(report_list)
+            self.assertEqual(result, expected, f"Failed on {report_list} with result {result}")
+    
     def test_get_report(self):
         """Test get_report method."""
         manager = ReportManager(self.test_dir)

@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import statistics
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime, timezone, timedelta
 from collections import Counter, defaultdict
@@ -21,14 +22,16 @@ class ReportManager:
     - Level 5: MonthlyReport (~4 WeeklyReports)
     """
     
-    def __init__(self, reports_dir: str):
+    def __init__(self, reports_dir: str, reporter=None):
         """
         Initialize the report manager.
         
         Args:
             reports_dir: Directory to store reports
+            reporter: Reporter instance for LLM analysis
         """
         self.reports_dir = reports_dir
+        self.reporter = reporter  # Instance of Reporter class for LLM analysis
         
         # Create reports directory if it doesn't exist
         os.makedirs(reports_dir, exist_ok=True)
@@ -149,6 +152,10 @@ class ReportManager:
         Args:
             cell: The Cell report to save
         """
+        # If we have a reporter and cell doesn't have analysis yet, get analysis
+        if self.reporter and not cell.analysis:
+            self.reporter.analyze_report(cell)
+            
         # Save the cell
         self._save_report(cell, "cells")
         
@@ -160,6 +167,35 @@ class ReportManager:
         # Check if we have enough cells to create a block
         if len(self.recent_cells) >= 16:
             self._create_block()
+    
+    def _calculate_severity_from_lower_reports(self, report_data_list: List[Dict[str, Any]]) -> Optional[int]:
+        """
+        Calculate a severity score based on lower-level reports.
+        
+        Args:
+            report_data_list: List of lower-level report data
+            
+        Returns:
+            Calculated severity or None if no severity data available
+        """
+        severities = []
+        for report in report_data_list:
+            if severity := report.get('severity'):
+                severities.append(severity)
+        
+        if not severities:
+            return None
+
+        # Calculate the median and add a bias toward higher severity
+        # This ensures we don't underestimate security threats
+        median = statistics.median(severities)
+        max_severity = max(severities)
+        
+        # Apply a bias formula: 70% median + 30% max to favor higher severities
+        weighted_severity = round(0.7 * median + 0.3 * max_severity)
+        
+        # Ensure the result is between 1 and 5
+        return max(1, min(5, weighted_severity))
     
     def _create_block(self) -> None:
         """Create a Block report from recent Cell reports."""
@@ -207,6 +243,9 @@ class ReportManager:
         # Calculate total events
         total_events = sum(cell.get('total', 0) for cell in cells_data)
         
+        # Calculate severity based on cell severities
+        severity = self._calculate_severity_from_lower_reports(cells_data)
+        
         # Create the block
         block = Block(
             report_id=block_id,
@@ -215,8 +254,13 @@ class ReportManager:
             total_events=total_events,
             cells=cell_ids,
             command_counts=dict(command_counts),
-            top_processes=top_processes
+            top_processes=top_processes,
+            severity=severity
         )
+        
+        # Send to LLM for analysis
+        if self.reporter:
+            self.reporter.analyze_report(block)
         
         # Save the block
         self._save_report(block, "blocks")
@@ -226,7 +270,7 @@ class ReportManager:
         if len(self.recent_blocks) > 6:
             self.recent_blocks.pop()
         
-        logger.info(f"Created block {block_id} from {len(cells_data)} cells")
+        logger.info(f"Created block {block_id} from {len(cells_data)} cells with severity {severity or 'unknown'}")
         
         # Check if we have enough blocks to create a daily report
         if len(self.recent_blocks) >= 6:
@@ -282,6 +326,20 @@ class ReportManager:
         # Calculate total events
         total_events = sum(block.get('total_events', 0) for block in blocks_data)
         
+        # Calculate severity based on block severities
+        severity = self._calculate_severity_from_lower_reports(blocks_data)
+        
+        # Collect unusual activity from blocks
+        unusual_activity = []
+        for block in blocks_data:
+            # If block has a high severity (4-5), treat it as unusual activity
+            if block.get('severity', 0) >= 4:
+                unusual_activity.append({
+                    "time_window": f"{block['window_start']} to {block['window_end']}",
+                    "severity": block.get('severity'),
+                    "summary": block.get('analysis', 'High severity activity detected')[:100] + "..."
+                })
+        
         # Create the daily report
         daily_report = DailyReport(
             report_id=daily_id,
@@ -292,8 +350,13 @@ class ReportManager:
             blocks=block_ids,
             command_counts=dict(command_counts),
             top_processes=top_processes,
-            unusual_activity=[]  # Would be filled by analysis
+            unusual_activity=unusual_activity,
+            severity=severity
         )
+        
+        # Send to LLM for analysis
+        if self.reporter:
+            self.reporter.analyze_report(daily_report)
         
         # Save the daily report
         self._save_report(daily_report, "daily")
@@ -303,7 +366,7 @@ class ReportManager:
         if len(self.recent_daily_reports) > 7:
             self.recent_daily_reports.pop()
         
-        logger.info(f"Created daily report {daily_id} from {len(blocks_data)} blocks")
+        logger.info(f"Created daily report {daily_id} from {len(blocks_data)} blocks with severity {severity or 'unknown'}")
         
         # Check if we have enough daily reports to create a weekly report
         if len(self.recent_daily_reports) >= 7:
@@ -378,9 +441,24 @@ class ReportManager:
         # Calculate total events
         total_events = sum(report.get('total_events', 0) for report in daily_data)
         
-        # For demo purposes, calculate a simple risk score
-        # In production, this would be based on analysis of unusual activity
-        risk_score = min(int(total_events / 1000), 100)
+        # Collect security incidents from daily reports
+        security_incidents = []
+        for report in daily_data:
+            # Any unusual activity from daily reports becomes an incident
+            if report.get('unusual_activity'):
+                for activity in report.get('unusual_activity', []):
+                    security_incidents.append({
+                        "date": report['date'],
+                        "details": activity,
+                        "risk_level": "high" if activity.get('severity', 0) >= 4 else "medium"
+                    })
+        
+        # Calculate severity based on daily report severities
+        severity = self._calculate_severity_from_lower_reports(daily_data)
+        
+        # Calculate risk score (0-100) from severity (1-5)
+        # This is just a linear transformation from severity to match the existing model
+        risk_score = min(20 * (severity or 2), 100) if severity else 40  # Default to moderate risk
         
         # Create the weekly report
         weekly_report = WeeklyReport(
@@ -391,9 +469,14 @@ class ReportManager:
             daily_reports=daily_ids,
             command_trends=command_trends,
             process_trends=process_trends,
-            security_incidents=[],  # Would be filled by analysis
-            risk_score=risk_score
+            security_incidents=security_incidents,
+            risk_score=risk_score,
+            severity=severity
         )
+        
+        # Send to LLM for analysis
+        if self.reporter:
+            self.reporter.analyze_report(weekly_report)
         
         # Save the weekly report
         self._save_report(weekly_report, "weekly")
@@ -403,7 +486,7 @@ class ReportManager:
         if len(self.recent_weekly_reports) > 4:
             self.recent_weekly_reports.pop()
         
-        logger.info(f"Created weekly report {weekly_id} from {len(daily_data)} daily reports")
+        logger.info(f"Created weekly report {weekly_id} from {len(daily_data)} daily reports with severity {severity or 'unknown'}")
         
         # Check if we have enough weekly reports to create a monthly report
         if len(self.recent_weekly_reports) >= 4:
@@ -465,6 +548,9 @@ class ReportManager:
         # Calculate total events
         total_events = sum(report.get('total_events', 0) for report in weekly_data)
         
+        # Calculate severity based on weekly report severities
+        severity = self._calculate_severity_from_lower_reports(weekly_data)
+        
         # Calculate average risk score
         avg_risk_score = int(sum(report.get('risk_score', 0) for report in weekly_data) / len(weekly_data))
         
@@ -481,6 +567,16 @@ class ReportManager:
             "low_risk_incidents": sum(1 for inc in all_incidents if inc.get("risk_level", "").lower() == "low"),
         }
         
+        # Generate basic recommendations based on severity
+        recommendations = []
+        if severity and severity >= 4:
+            recommendations.append("Conduct a thorough security audit of all systems")
+            recommendations.append("Review user privileges and access controls")
+            recommendations.append("Implement additional monitoring for high-risk commands")
+        elif severity and severity >= 3:
+            recommendations.append("Review security logs for suspicious patterns")
+            recommendations.append("Update system security policies")
+        
         # Create the monthly report
         monthly_report = MonthlyReport(
             report_id=monthly_id,
@@ -493,13 +589,47 @@ class ReportManager:
             process_summary=process_summary,
             security_summary=security_summary,
             risk_score=avg_risk_score,
-            recommendations=[]  # Would be filled by analysis
+            recommendations=recommendations,
+            severity=severity
         )
+        
+        # Send to LLM for analysis
+        if self.reporter:
+            self.reporter.analyze_report(monthly_report)
+            
+            # Update recommendations from the LLM analysis if available
+            if monthly_report.analysis:
+                # Extract recommendations from analysis
+                # Look for lines starting with "Recommendation" or in a section called "Recommendations"
+                lines = monthly_report.analysis.split('\n')
+                rec_section = False
+                ai_recommendations = []
+                
+                for line in lines:
+                    line = line.strip()
+                    if "recommendation" in line.lower() or "recommend" in line.lower():
+                        if line.startswith("-") or line.startswith("*"):
+                            ai_recommendations.append(line[1:].strip())
+                        elif ":" in line:
+                            ai_recommendations.append(line.split(":", 1)[1].strip())
+                    elif line.lower() in ["recommendations:", "recommendations", "strategic recommendations:"]:
+                        rec_section = True
+                    elif rec_section and line.startswith("-"):
+                        ai_recommendations.append(line[1:].strip())
+                    elif rec_section and line and line[0].isdigit() and "." in line[:3]:
+                        ai_recommendations.append(line.split(".", 1)[1].strip())
+                    elif rec_section and line == "":
+                        rec_section = False
+                
+                if ai_recommendations:
+                    monthly_report.recommendations = ai_recommendations
+                    # Save the report again with the updated recommendations
+                    self._save_report(monthly_report, "monthly")
         
         # Save the monthly report
         self._save_report(monthly_report, "monthly")
         
-        logger.info(f"Created monthly report {monthly_id} from {len(weekly_data)} weekly reports")
+        logger.info(f"Created monthly report {monthly_id} from {len(weekly_data)} weekly reports with severity {severity or 'unknown'}")
     
     def get_report(self, report_id: str, report_type: str) -> Optional[Dict[str, Any]]:
         """

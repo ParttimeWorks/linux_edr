@@ -161,9 +161,9 @@ class LinuxEDRApp:
         model = self.config.get("DEFAULT", "model", "gpt-4o-mini")
         self.rep = Reporter(api_key=api_key, output_file=self.output_file, model=model)
         
-        # Initialize report manager
+        # Initialize report manager with reporter instance
         reports_dir = self.config.get("REPORTS", "reports_dir", "reports")
-        self.report_manager = ReportManager(reports_dir)
+        self.report_manager = ReportManager(reports_dir, reporter=self.rep)
         
         # Configure scheduler
         self.scheduler = BackgroundScheduler(misfire_grace_time=30)
@@ -198,15 +198,20 @@ class LinuxEDRApp:
             # Set process events in the summary for backward compatibility
             summary.process_events = grouped_events
             
+            # Send to LLM for analysis
+            analysis, severity = self.rep.send_llm(summary)
+            
+            # Update severity in summary if available
+            if severity:
+                summary.severity = severity
+            
             self.rep.save_json(
                 summary, 
                 include_raw_events=include_raw if len(events) <= max_lines else False,
                 raw_events=events if include_raw and len(events) <= max_lines else None
             )
-            # Send to LLM for analysis
-            self.rep.send_llm(summary)
         
-        # Add the cell to the report manager to trigger higher-level report generation
+        # Add the cell to the report manager - it will handle the LLM analysis
         self.report_manager.create_cell(cell)
         
         logging.info(f"Created cell report {cell.report_id} with {cell.total} events")

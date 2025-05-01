@@ -19,7 +19,7 @@ class TestReporterAdvanced(unittest.TestCase):
         
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Block analysis result"
+        mock_response.choices[0].message.content = "Block analysis result\nSecurity Score: 2"
         
         mock_client.chat.completions.create.return_value = mock_response
         
@@ -43,8 +43,9 @@ class TestReporterAdvanced(unittest.TestCase):
         # Verify LLM was called with the block's prompt
         mock_client.chat.completions.create.assert_called_once()
         
-        # Verify block was updated with analysis
-        self.assertEqual(block.analysis, "Block analysis result")
+        # Verify block was updated with analysis and severity
+        self.assertEqual(block.analysis, "Block analysis result\nSecurity Score: 2")
+        self.assertEqual(block.severity, 2)
     
     @patch('linux_edr.reporter.OpenAI')
     def test_analyze_report_daily(self, mock_openai):
@@ -55,7 +56,7 @@ class TestReporterAdvanced(unittest.TestCase):
         
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Daily report analysis"
+        mock_response.choices[0].message.content = "Daily report analysis\nSeverity: 3"
         
         mock_client.chat.completions.create.return_value = mock_response
         
@@ -85,8 +86,9 @@ class TestReporterAdvanced(unittest.TestCase):
         self.assertEqual(len(call_args["messages"]), 2)
         self.assertIn("Daily Report", call_args["messages"][1]["content"])
         
-        # Verify daily report was updated with analysis
-        self.assertEqual(daily.analysis, "Daily report analysis")
+        # Verify daily report was updated with analysis and severity
+        self.assertEqual(daily.analysis, "Daily report analysis\nSeverity: 3")
+        self.assertEqual(daily.severity, 3)
 
     @patch('linux_edr.reporter.OpenAI')
     def test_analyze_report_weekly(self, mock_openai):
@@ -97,7 +99,7 @@ class TestReporterAdvanced(unittest.TestCase):
         
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Weekly report analysis"
+        mock_response.choices[0].message.content = "Weekly report analysis\nSecurity Score: 4"
         
         mock_client.chat.completions.create.return_value = mock_response
         
@@ -123,8 +125,9 @@ class TestReporterAdvanced(unittest.TestCase):
         # Verify LLM was called
         mock_client.chat.completions.create.assert_called_once()
         
-        # Verify report was updated with analysis
-        self.assertEqual(weekly.analysis, "Weekly report analysis")
+        # Verify report was updated with analysis and severity
+        self.assertEqual(weekly.analysis, "Weekly report analysis\nSecurity Score: 4")
+        self.assertEqual(weekly.severity, 4)
     
     @patch('linux_edr.reporter.OpenAI')
     def test_analyze_report_monthly(self, mock_openai):
@@ -135,7 +138,7 @@ class TestReporterAdvanced(unittest.TestCase):
         
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Monthly report analysis"
+        mock_response.choices[0].message.content = "Monthly report analysis\nSeverity: 5"
         
         mock_client.chat.completions.create.return_value = mock_response
         
@@ -163,8 +166,9 @@ class TestReporterAdvanced(unittest.TestCase):
         # Verify LLM was called
         mock_client.chat.completions.create.assert_called_once()
         
-        # Verify report was updated with analysis
-        self.assertEqual(monthly.analysis, "Monthly report analysis")
+        # Verify report was updated with analysis and severity
+        self.assertEqual(monthly.analysis, "Monthly report analysis\nSeverity: 5")
+        self.assertEqual(monthly.severity, 5)
 
     @patch('linux_edr.reporter.OpenAI')
     def test_analyze_report_no_api_key(self, mock_openai):
@@ -194,8 +198,9 @@ class TestReporterAdvanced(unittest.TestCase):
         # OpenAI client should not be created
         mock_openai.assert_not_called()
         
-        # Block should not have an analysis
+        # Block should not have an analysis or severity
         self.assertIsNone(block.analysis)
+        self.assertIsNone(block.severity)
 
     @patch('linux_edr.reporter.OpenAI')
     def test_send_llm_error_handling(self, mock_openai):
@@ -221,14 +226,15 @@ class TestReporterAdvanced(unittest.TestCase):
         # Mock the logger
         with patch('linux_edr.reporter.logger') as mock_logger:
             # Call send_llm - should handle the exception
-            result = reporter.send_llm(summary)
+            analysis, severity = reporter.send_llm(summary)
             
             # Verify error was logged
             mock_logger.error.assert_called_once()
             self.assertIn("LLM error", mock_logger.error.call_args[0][0])
         
-        # Method should return None on error
-        self.assertIsNone(result)
+        # Method should return None on error for both return values
+        self.assertIsNone(analysis)
+        self.assertIsNone(severity)
 
     @patch('builtins.open', new_callable=MagicMock)
     @patch('linux_edr.reporter.OpenAI')
@@ -240,7 +246,7 @@ class TestReporterAdvanced(unittest.TestCase):
         
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Analysis result"
+        mock_response.choices[0].message.content = "Analysis result\nSeverity: 3"
         
         mock_client.chat.completions.create.return_value = mock_response
         
@@ -261,17 +267,18 @@ class TestReporterAdvanced(unittest.TestCase):
         mock_open.return_value.__enter__.return_value = mock_file
         
         # Call send_llm
-        result = reporter.send_llm(summary)
+        analysis, severity = reporter.send_llm(summary)
         
         # Verify result
-        self.assertEqual(result, "Analysis result")
+        self.assertEqual(analysis, "Analysis result\nSeverity: 3")
+        self.assertEqual(severity, 3)
         
         # Verify file was opened for analysis output
         mock_open.assert_called_once_with("test.json.analysis", "a")
         
         # Verify content was written to file
-        mock_file.write.assert_any_call("--- Analysis for report test123 ---\n")
-        mock_file.write.assert_any_call("Analysis result")
+        mock_file.write.assert_any_call(f"--- Analysis for report test123 (Severity: 3) ---\n")
+        mock_file.write.assert_any_call("Analysis result\nSeverity: 3")
         mock_file.write.assert_any_call("\n\n")
 
 

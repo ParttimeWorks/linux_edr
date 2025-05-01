@@ -44,6 +44,7 @@ class SummaryReport(BaseModel):
     process_events: Optional[Dict[str, List[str]]] = Field(None, description="Grouped events by process name")
     raw_events: Optional[List[Dict[str, Any]]] = Field(None, description="Raw event data")
     analysis: Optional[str] = Field(None, description="AI analysis of the events")
+    severity: Optional[int] = Field(None, description="Severity rating (1-5, where 5 is most severe)", ge=1, le=5)
 
     @field_validator('window_start', 'window_end')
     @classmethod
@@ -101,6 +102,13 @@ class SummaryReport(BaseModel):
 
 ---
 Analyze the above system activity for security concerns. Identify any suspicious or unusual patterns in command execution. Explain why specific commands might represent security risks.
+
+Your response should be formatted as follows:
+1. Summary: A concise summary of the overall security posture during this time period.
+2. Security Score: Assign a severity level from 1-5 (where 1 is secure/normal and 5 is critical/severe).
+3. Key Findings: List specific suspicious activities or security concerns found.
+
+Include clear reasoning for your severity score.
 """
 
     def model_dump(self) -> Dict[str, Any]:
@@ -137,6 +145,7 @@ class Block(BaseModel):
     command_counts: Dict[str, int] = Field(..., description="Aggregated count of each command executed")
     top_processes: Dict[str, int] = Field(..., description="Top processes by execution count")
     analysis: Optional[str] = Field(None, description="AI analysis of the block")
+    severity: Optional[int] = Field(None, description="Severity rating (1-5, where 5 is most severe)", ge=1, le=5)
     
     @field_validator('window_start', 'window_end')
     @classmethod
@@ -171,6 +180,13 @@ class Block(BaseModel):
 
 ---
 Analyze the aggregated system activity for security concerns over this 4-hour period. Identify any suspicious or unusual patterns in command execution trends. Explain why specific patterns might represent security risks.
+
+Your response should be formatted as follows:
+1. Summary: A concise summary of the overall security posture during this 4-hour period.
+2. Security Score: Assign a severity level from 1-5 (where 1 is secure/normal and 5 is critical/severe).
+3. Key Findings: List specific suspicious activities or security concerns found.
+
+Include clear reasoning for your severity score.
 """
 
 
@@ -189,6 +205,7 @@ class DailyReport(BaseModel):
     top_processes: Dict[str, int] = Field(..., description="Top processes by execution count")
     unusual_activity: List[Dict[str, Any]] = Field(default_factory=list, description="Unusual activity patterns detected")
     analysis: Optional[str] = Field(None, description="AI analysis of the daily activity")
+    severity: Optional[int] = Field(None, description="Severity rating (1-5, where 5 is most severe)", ge=1, le=5)
     
     @model_validator(mode='after')
     def validate_date_format(self) -> 'DailyReport':
@@ -232,6 +249,13 @@ class DailyReport(BaseModel):
 
 ---
 Analyze the system activity over this 24-hour period. Identify any suspicious or unusual patterns in command execution. Explain why specific commands or patterns might represent security risks. Compare with typical baseline activity for this system.
+
+Your response should be formatted as follows:
+1. Summary: A concise summary of the overall security posture during this 24-hour period.
+2. Security Score: Assign a severity level from 1-5 (where 1 is secure/normal and 5 is critical/severe).
+3. Key Findings: List specific suspicious activities or security concerns found.
+
+Include clear reasoning for your severity score.
 """
 
 
@@ -250,6 +274,7 @@ class WeeklyReport(BaseModel):
     security_incidents: List[Dict[str, Any]] = Field(default_factory=list, description="Security incidents detected")
     risk_score: int = Field(..., description="Overall security risk score (0-100)", ge=0, le=100)
     analysis: Optional[str] = Field(None, description="AI analysis of the weekly activity")
+    severity: Optional[int] = Field(None, description="Severity rating (1-5, where 5 is most severe)", ge=1, le=5)
     
     @model_validator(mode='after')
     def validate_date_range(self) -> 'WeeklyReport':
@@ -287,7 +312,15 @@ class WeeklyReport(BaseModel):
         return f"""{basic_info}{incidents}
 
 ---
-Analyze the system activity over this week. Identify trends in command execution patterns and potential security issues. Compare with previous weeks if available. Recommend specific actions to mitigate any detected risks.
+Analyze the system activity over this week. Identify trends in command execution patterns and potential security issues. Compare with previous weeks if available.
+
+Your response should be formatted as follows:
+1. Summary: A concise summary of the overall security posture during this week.
+2. Security Score: Assign a severity level from 1-5 (where 1 is secure/normal and 5 is critical/severe).
+3. Key Findings: List specific suspicious activities or security concerns found.
+4. Recommendations: Suggest actions to mitigate detected risks.
+
+Include clear reasoning for your severity score.
 """
 
 
@@ -308,6 +341,7 @@ class MonthlyReport(BaseModel):
     risk_score: int = Field(..., description="Overall security risk score (0-100)", ge=0, le=100)
     recommendations: List[str] = Field(default_factory=list, description="Security recommendations")
     analysis: Optional[str] = Field(None, description="AI analysis of the monthly activity")
+    severity: Optional[int] = Field(None, description="Severity rating (1-5, where 5 is most severe)", ge=1, le=5)
     
     @model_validator(mode='after')
     def validate_month_format(self) -> 'MonthlyReport':
@@ -349,7 +383,15 @@ class MonthlyReport(BaseModel):
         return f"""{basic_info}{recommendations}
 
 ---
-Provide a comprehensive monthly security analysis based on the collected data. Identify long-term trends, recurring patterns, and fundamental security posture issues. Suggest strategic improvements to enhance the system's security posture.
+Provide a comprehensive monthly security analysis based on the collected data. Identify long-term trends, recurring patterns, and fundamental security posture issues.
+
+Your response should be formatted as follows:
+1. Summary: A concise summary of the overall security posture during this month.
+2. Security Score: Assign a severity level from 1-5 (where 1 is secure/normal and 5 is critical/severe).
+3. Key Findings: List the most significant security observations from the month.
+4. Strategic Recommendations: Suggest long-term improvements to enhance the system's security.
+
+Include clear reasoning for your severity score.
 """
 
 
@@ -362,6 +404,7 @@ class DailySummary(BaseModel):
     top_commands: Dict[str, int] = Field(..., description="Most frequently executed commands")
     suspicious_score: int = Field(..., description="Security risk score (0-100)", ge=0, le=100)
     analysis: str = Field(..., description="Consolidated AI analysis")
+    severity: Optional[int] = Field(None, description="Severity rating (1-5, where 5 is most severe)", ge=1, le=5)
     
     @model_validator(mode='after')
     def validate_date_format(self) -> 'DailySummary':
