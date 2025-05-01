@@ -86,6 +86,16 @@ class ReportService:
         if len(self.recent_cells) >= 16:
             self._create_block()
 
+        # After handling the cell, attempt to process any completed batch LLM analyses.
+        if self.reporter and hasattr(self.reporter, "process_completed_batches"):
+            try:
+                self.reporter.process_completed_batches(
+                    weekly_repo=self.weekly_repository,
+                    monthly_repo=self.monthly_repository,
+                )
+            except Exception as e:
+                logger.error(f"Error processing completed LLM batches: {e}")
+
     def _create_block(self) -> None:
         """Create a Block report from recent Cell reports."""
         if len(self.recent_cells) < 16:
@@ -387,6 +397,16 @@ class ReportService:
             f"Created weekly report {weekly_id} from {len(daily_data)} daily reports with severity {severity or 'unknown'}"
         )
 
+        # After creating the weekly report, check for any completed batch analyses.
+        if self.reporter and hasattr(self.reporter, "process_completed_batches"):
+            try:
+                self.reporter.process_completed_batches(
+                    weekly_repo=self.weekly_repository,
+                    monthly_repo=self.monthly_repository,
+                )
+            except Exception as e:
+                logger.error(f"Error processing completed LLM batches: {e}")
+
         # Check if we have enough weekly reports to create a monthly report
         if len(self.recent_weekly_reports) >= 4:
             self._create_monthly_report()
@@ -585,6 +605,16 @@ class ReportService:
         logger.info(
             f"Created monthly report {monthly_id} from {len(weekly_data)} weekly reports with severity {severity or 'unknown'}"
         )
+
+        # After creating the monthly report, attempt to process completed batch results as well.
+        if self.reporter and hasattr(self.reporter, "process_completed_batches"):
+            try:
+                self.reporter.process_completed_batches(
+                    weekly_repo=self.weekly_repository,
+                    monthly_repo=self.monthly_repository,
+                )
+            except Exception as e:
+                logger.error(f"Error processing completed LLM batches: {e}")
 
     def get_report(self, report_id: str, report_type: str) -> Optional[Dict[str, Any]]:
         """

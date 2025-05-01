@@ -97,14 +97,9 @@ class TestReporterAdvanced(unittest.TestCase):
         mock_client = MagicMock()
         mock_openai.return_value = mock_client
 
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Weekly report analysis\nSecurity Score: 4"
-
-        mock_client.chat.completions.create.return_value = mock_response
-
-        # Create a reporter with API key
+        # Create a reporter with API key and stub out flush to prevent actual batch submission
         reporter = Reporter(api_key="test_key")
+        reporter._flush_batch_queue = MagicMock()
 
         # Create a WeeklyReport
         weekly = WeeklyReport(
@@ -124,15 +119,17 @@ class TestReporterAdvanced(unittest.TestCase):
             risk_score=65,
         )
 
-        # Call analyze_report
+        # Call analyze_report (should enqueue for batch)
         reporter.analyze_report(weekly)
 
-        # Verify LLM was called
-        mock_client.chat.completions.create.assert_called_once()
+        # Verify chat.completions.create was NOT called for batch processing
+        mock_client.chat.completions.create.assert_not_called()
 
-        # Verify report was updated with analysis and severity
-        self.assertEqual(weekly.analysis, "Weekly report analysis\nSecurity Score: 4")
-        self.assertEqual(weekly.severity, 4)
+        # Verify a request was queued for batch processing
+        reporter._flush_batch_queue.assert_called_once()
+        self.assertEqual(len(reporter._batch_queue), 1)
+        queued_request = reporter._batch_queue[0]
+        self.assertEqual(queued_request["custom_id"], weekly.report_id)
 
     @patch("linux_edr.reporter.OpenAI")
     def test_analyze_report_monthly(self, mock_openai):
@@ -141,14 +138,9 @@ class TestReporterAdvanced(unittest.TestCase):
         mock_client = MagicMock()
         mock_openai.return_value = mock_client
 
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Monthly report analysis\nSeverity: 5"
-
-        mock_client.chat.completions.create.return_value = mock_response
-
-        # Create a reporter with API key
+        # Create a reporter with API key and stub flush
         reporter = Reporter(api_key="test_key")
+        reporter._flush_batch_queue = MagicMock()
 
         # Create a MonthlyReport
         monthly = MonthlyReport(
@@ -170,15 +162,17 @@ class TestReporterAdvanced(unittest.TestCase):
             recommendations=["Update system packages", "Review SSH configurations"],
         )
 
-        # Call analyze_report
+        # Call analyze_report (should enqueue for batch)
         reporter.analyze_report(monthly)
 
-        # Verify LLM was called
-        mock_client.chat.completions.create.assert_called_once()
+        # Ensure no synchronous completion call
+        mock_client.chat.completions.create.assert_not_called()
 
-        # Verify report was updated with analysis and severity
-        self.assertEqual(monthly.analysis, "Monthly report analysis\nSeverity: 5")
-        self.assertEqual(monthly.severity, 5)
+        # Validate batch queue logic
+        reporter._flush_batch_queue.assert_called_once()
+        self.assertEqual(len(reporter._batch_queue), 1)
+        queued_request = reporter._batch_queue[0]
+        self.assertEqual(queued_request["custom_id"], monthly.report_id)
 
     @patch("linux_edr.reporter.OpenAI")
     def test_analyze_report_no_api_key(self, mock_openai):
