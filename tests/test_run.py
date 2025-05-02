@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock, call
 import time
 from linux_edr.app import LinuxEDRApp
+from linux_edr.domain.models.events import ExecveEvent
 
 
 class TestAppRun(unittest.TestCase):
@@ -31,8 +32,8 @@ class TestAppRun(unittest.TestCase):
         mock_agg_instance = mock_aggregator.return_value
 
         # Prepare trace reader to return two events then raise KeyboardInterrupt
-        event1 = {"command": "ls", "args": ["-la"], "pid": 1000}
-        event2 = {"command": "cat", "args": ["/etc/passwd"], "pid": 1001}
+        event1 = ExecveEvent(timestamp="t1", pid=1000, command="ls", args=["-la"])
+        event2 = ExecveEvent(timestamp="t2", pid=1001, command="cat", args=["/etc/passwd"])
 
         # Set up the iterable to yield two events then stop
         mock_reader_instance.__iter__.return_value = iter([event1, event2, None])
@@ -47,7 +48,7 @@ class TestAppRun(unittest.TestCase):
         mock_scheduler_instance.start.assert_called_once()
 
         # Verify events were added to aggregator
-        mock_agg_instance.add.assert_has_calls([call(event1), call(event2)])
+        mock_agg_instance.add.assert_has_calls([call(event1.model_dump()), call(event2.model_dump())])
 
         # Verify logging
         mock_logging.info.assert_any_call("Scheduler started")
@@ -80,7 +81,7 @@ class TestAppRun(unittest.TestCase):
 
         # Make reader iterator raise KeyboardInterrupt
         def iter_side_effect():
-            yield {"command": "ls", "args": ["-la"], "pid": 1000}
+            yield ExecveEvent(timestamp="t1", pid=1000, command="ls", args=["-la"])
             raise KeyboardInterrupt()
 
         mock_reader_instance.__iter__.return_value = iter_side_effect()

@@ -11,7 +11,7 @@ from linux_edr.app import (
     SyscallTracer,
 )
 
-from linux_edr.domain.models.event_models import ExecveEvent
+from linux_edr.domain.models.events import ExecveEvent
 
 
 class TestApp(unittest.TestCase):
@@ -266,30 +266,25 @@ class TestApp(unittest.TestCase):
         # Import the method to test it independently
         from linux_edr.app import LinuxEDRApp
 
-        # Call the method directly
-        LinuxEDRApp._process_event(app, "test_event")
+        # Call the method directly with a validated event
+        LinuxEDRApp._process_event(app, parsed_event)
 
         # The aggregator should receive a validated dict version of the parsed event
-        expected_dict = {
-            "timestamp": "12345.6789",
-            "pid": 1000,
-            "command": "test_cmd",
-            "args": ["-a", "-b"],
-        }
+        expected_dict = parsed_event.model_dump()
         app.agg.add.assert_called_once_with(expected_dict)
 
         # Reset mock and test with verbose_debug=False
         mock_log_debug.reset_mock()
         app.verbose_debug = False
 
-        LinuxEDRApp._process_event(app, "test_event2")
+        LinuxEDRApp._process_event(app, parsed_event)
         app.agg.add.assert_called_with(expected_dict)
 
         # Test with debug=False
         mock_log_debug.reset_mock()
         app.debug = False
 
-        LinuxEDRApp._process_event(app, "test_event3")
+        LinuxEDRApp._process_event(app, parsed_event)
         app.agg.add.assert_called_with(expected_dict)
         mock_log_debug.assert_not_called()
 

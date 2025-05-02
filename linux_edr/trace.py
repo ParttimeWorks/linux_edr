@@ -4,15 +4,23 @@ import fcntl
 import errno
 import logging
 import time
-from typing import Generator, Optional
+import re
+from typing import Generator, Optional, Union
 
 # Default path to the kernel's trace_pipe
 TRACE_PATH = "/sys/kernel/tracing/trace_pipe"
 # Maximum time to wait when reading (in seconds)
-DEFAULT_TIMEOUT = 10
+DEFAULT_TIMEOUT = 1.0
 
 logger = logging.getLogger(__name__)
 
+# Pre-compiled regexes for supported syscalls
+EXECVE_PATTERN = re.compile(r"(\S+)\s+\[(\d+)\]\s+.*execve.*\((.*?)\)")
+FORK_PATTERN = re.compile(r"(\S+)\s+\[(\d+)\]\s+.*fork.*child_pid=(\d+)")
+CLONE_PATTERN = re.compile(r"(\S+)\s+\[(\d+)\]\s+.*clone.*child_pid=(\d+)\s+flags=(\S+)")
+CONNECT_PATTERN = re.compile(r"(\S+)\s+\[(\d+)\]\s+.*connect.*fd=(\d+)\s+addr=(.+)")
+
+from .domain.models.events import ExecveEvent, ForkEvent, CloneEvent, ConnectEvent, BaseSyscallEvent
 
 class TraceReader:
     """
@@ -121,7 +129,34 @@ class TraceReader:
                 return False
         return True
 
-    def __iter__(self) -> Generator[str, None, None]:
+    def _parse_line(self, line: str) -> Optional[BaseSyscallEvent]:
+        """Attempt to parse a supported syscall line into a Pydantic model."""
+        # execve
+        if m := EXECVE_PATTERN.search(line):
+            ts, pid_str, cmd_args = m.groups()
+            pid = int(pid_str)
+            parts = cmd_args.split() if cmd_args else []
+            if parts:
+                return ExecveEvent(timestamp=ts, pid=pid, command=parts[0].strip('"'), args=parts[1:])
+
+        # fork
+        if m := FORK_PATTERN.search(line):
+            ts, pid_str, child_pid_str = m.groups()
+            return ForkEvent(timestamp=ts, pid=int(pid_str), child_pid=int(child_pid_str))
+
+        # clone
+        if m := CLONE_PATTERN.search(line):
+            ts, pid_str, child_pid_str, flags = m.groups()
+            return CloneEvent(timestamp=ts, pid=int(pid_str), child_pid=int(child_pid_str), flags=flags)
+
+        # connect
+        if m := CONNECT_PATTERN.search(line):
+            ts, pid_str, fd_str, addr = m.groups()
+            return ConnectEvent(timestamp=ts, pid=int(pid_str), fd=int(fd_str), address=addr)
+
+        return None
+
+    def __iter__(self) -> Generator[Union[str, BaseSyscallEvent], None, None]:
         """
         Iterate over lines from the trace pipe.
 
@@ -168,8 +203,12 @@ class TraceReader:
                                 text = data.decode("utf-8", errors="replace")
 
                             for line in text.splitlines():
-                                if line.strip():  # Skip empty lines
-                                    yield line
+                                if not line.strip():
+                                    continue
+
+                                parsed_evt = self._parse_line(line)
+                                # Yield the parsed object if recognized, else the raw line for backward-compat.
+                                yield parsed_evt if parsed_evt else line
                         except OSError as e:
                             if e.errno in (errno.EAGAIN, errno.EWOULDBLOCK):
                                 continue

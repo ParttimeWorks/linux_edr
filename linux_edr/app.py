@@ -2,7 +2,7 @@ import logging.config
 from collections import defaultdict
 import re
 import os
-from typing import Dict, List, Optional, Any, NamedTuple, Iterator, Set, Tuple
+from typing import Dict, List, Optional, Any, NamedTuple, Iterator, Set, Tuple, Union
 from apscheduler.schedulers.background import BackgroundScheduler
 from .trace import TraceReader
 from .aggregator import Aggregator
@@ -11,6 +11,7 @@ from .reporter import Reporter
 from .config import Config
 from .report_manager import ReportManager
 from .models import Cell
+from .domain.models.events import BaseSyscallEvent, ExecveEvent
 
 
 def setup_logging(debug: bool = False) -> None:
@@ -316,62 +317,35 @@ class LinuxEDRApp:
 
         logging.info(f"Created cell report {cell.report_id} with {cell.total} events")
 
-    def _process_event(self, evt: str) -> None:
+    def _process_event(self, evt: BaseSyscallEvent) -> None:
         """
         Process a single event from the trace reader.
 
         Args:
             evt: Raw event string from trace_pipe
         """
-        # Log raw event in debug mode
-        if self.debug:
-            # Always log basic event info
-            logging.debug(f"Raw event: {evt}")
+        if self.verbose_debug:
+            self._log_debug_event(evt)
 
-            # Log detailed parsed info if verbose debug is enabled
-            if self.verbose_debug:
-                self._log_parsed_event(evt)
-
-        # If event is already a dict (e.g., when injected by tests or future extensions),
-        # we assume it's been validated and directly buffer it.
-        if isinstance(evt, dict):
-            self.agg.add(evt)
+        # If the trace reader already produced a validated ExecveEvent model, buffer it directly.
+        if isinstance(evt, BaseSyscallEvent):
+            self.agg.add(evt.model_dump() if hasattr(evt, "model_dump") else evt.dict())
             return
+        else:
+            logging.warning(f"Invalid event type: {type(evt)}")
 
-        # Otherwise, treat it as raw text from trace_pipe and try to parse/validate.
-        parsed = parse_execve(evt)
-
-        if not parsed:
-            # Not an execve line – skip buffering
-            return
-
-        # Validate with Pydantic schema (ensures correct types/structure)
-        try:
-            from .domain.models.event_models import ExecveEvent as ExecveEventModel  # Local import to avoid cycles
-
-            model_event = ExecveEventModel.from_namedtuple(parsed)
-
-            # Buffer as plain dict (safer for serialization & downstream processing)
-            self.agg.add(model_event.model_dump())
-        except Exception as e:
-            # Any validation or conversion error – log and drop the event
-            logging.warning("Invalid event skipped: %s", e)
-
-    def _log_parsed_event(self, evt: str) -> None:
+    def _log_debug_event(self, evt: BaseSyscallEvent) -> None:
         """
         Parse and log detailed event information.
 
         Args:
             evt: Raw event string from trace_pipe
         """
+        if not self.debug or not self.verbose_debug:
+            return
+
         try:
-            parsed_evt = parse_execve(evt)
-            if parsed_evt:
-                logging.debug(
-                    f"Parsed execve: timestamp={parsed_evt.timestamp}, "
-                    f"pid={parsed_evt.pid}, command={parsed_evt.command}, "
-                    f"args={parsed_evt.args}"
-                )
+            logging.debug(f"{evt}")
         except Exception as e:
             logging.debug(f"Parse error: {str(e)}")
 
