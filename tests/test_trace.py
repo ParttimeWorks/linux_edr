@@ -6,6 +6,7 @@ import tempfile
 import errno
 from unittest.mock import patch, MagicMock, mock_open
 from linux_edr.trace import TraceReader
+from linux_edr.domain.models.events import UnparsedEvent
 
 
 class TestTraceReader(unittest.TestCase):
@@ -129,7 +130,14 @@ class TestTraceReader(unittest.TestCase):
                 break
 
         # Verify lines were read correctly
-        self.assertEqual(lines, ["line1", "line2", "line3"])
+        self.assertEqual(
+            lines,
+            [
+                UnparsedEvent(raw_line="line1"),
+                UnparsedEvent(raw_line="line2"),
+                UnparsedEvent(raw_line="line3"),
+            ],
+        )
 
     @patch("os.open")
     @patch("os.read")
@@ -163,7 +171,9 @@ class TestTraceReader(unittest.TestCase):
 
         # Verify line was read and invalid characters were replaced
         self.assertEqual(len(lines), 1)
-        self.assertIn("Invalid UTF-8", lines[0])
+        # Check the raw_line attribute of the UnparsedEvent
+        self.assertIsInstance(lines[0], UnparsedEvent)
+        self.assertIn("Invalid UTF-8", lines[0].raw_line)
 
     @patch("os.open")
     @patch("os.read")
@@ -201,7 +211,7 @@ class TestTraceReader(unittest.TestCase):
             break
 
         # Verify line was read after EAGAIN
-        self.assertEqual(lines, ["line1"])
+        self.assertEqual(lines, [UnparsedEvent(raw_line="line1")])
 
     @patch("os.open")
     @patch("os.read")

@@ -6,6 +6,7 @@ from unittest.mock import patch, MagicMock, call
 from linux_edr.trace import TraceReader
 from itertools import islice
 import logging
+from linux_edr.domain.models.events import UnparsedEvent
 
 
 class TestTraceReaderErrors(unittest.TestCase):
@@ -62,7 +63,7 @@ class TestTraceReaderErrors(unittest.TestCase):
                 mock_reopen.assert_called_once()
 
                 # Verify data after reopen was read
-                self.assertEqual(lines, ["data after reopen"])
+                self.assertEqual(lines, [UnparsedEvent(raw_line="data after reopen")])
 
                 # Verify warning was logged about bad descriptor
                 mock_logger.warning.assert_any_call("Bad file descriptor, reopening trace pipe")

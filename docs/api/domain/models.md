@@ -6,19 +6,62 @@ The domain layer contains the core business logic and entities of the Linux EDR 
 
 ### Event Models
 
-Domain models for system events captured from the Linux kernel.
+Domain models for system events captured from the Linux kernel. These models are based on Pydantic for validation and type safety.
+
+All syscall events inherit from a `BaseSyscallEvent`:
 
 ```python
-# Example usage
-from linux_edr.domain.models import Event, EventType, ProcessEvent
+from linux_edr.domain.models.events import BaseSyscallEvent
 
-# Create an event instance
-event = ProcessEvent(
+# Base class structure (simplified)
+class BaseSyscallEvent(BaseModel):
+    timestamp: str
+    pid: int
+```
+
+Specific syscall events extend this base class, adding relevant fields.
+
+#### Execve Event
+
+```python
+from linux_edr.domain.models.events import ExecveEvent
+
+# Example usage
+event = ExecveEvent(
+    timestamp="12345.67890",
     pid=1234,
     command="ls",
     args=["-la", "/home"],
-    timestamp=datetime.now()
 )
+print(event.model_dump())
+```
+
+#### Fork/Clone Events
+
+```python
+from linux_edr.domain.models.events import ForkEvent, CloneEvent
+
+# Example usage
+fork_evt = ForkEvent(timestamp="12346.00000", pid=100, child_pid=101)
+clone_evt = CloneEvent(timestamp="12347.00000", pid=200, child_pid=201, flags="CLONE_FS")
+
+print(fork_evt)
+print(clone_evt)
+```
+
+#### Connect Event
+
+```python
+from linux_edr.domain.models.events import ConnectEvent
+
+# Example usage
+connect_evt = ConnectEvent(
+    timestamp="12348.00000",
+    pid=500,
+    fd=3,
+    address="192.168.1.1:80"
+)
+print(connect_evt)
 ```
 
 ### Report Models

@@ -17,7 +17,7 @@ For more details, see the [Clean Architecture](clean-architecture.md) page.
 
 ### Domain Layer
 
-- **Models**: Defines the structure of events and reports using Pydantic, ensuring data consistency and validation.
+- **Models**: Defines the structure of events and reports using Pydantic, ensuring data consistency and validation. Includes a base `BaseSyscallEvent` and specific models for traced syscalls (e.g., `ExecveEvent`, `ForkEvent`).
 
 ### Application Layer
 
@@ -45,15 +45,16 @@ For more details, see the [Clean Architecture](clean-architecture.md) page.
 
 ## Data Flow
 
-1. The `TraceReader` continuously reads `execve` events from the kernel trace pipe.
-2. Events are passed to the `Aggregator`, which buffers them in a thread-safe manner.
-3. A background scheduler triggers the appropriate use case at the configured interval.
-4. The use case retrieves a snapshot of events from the `Aggregator`.
-5. The service creates a Level 1 `Cell` report from the event snapshot.
-6. The `Cell` is passed to the `ReportManager`.
-7. The `ReportManager` saves the `Cell` and checks if enough Cells exist to create a Level 2 `Block`. This process continues up the hierarchy (Daily, Weekly, Monthly).
-8. The `Reporter` can optionally save the initial `Cell` report to a JSON file and send it to OpenAI for analysis.
-9. Higher-level reports (Blocks, etc.) can also be configured for AI analysis via the `ReportManager` interacting with the `Reporter`.
+1. The `TraceReader` continuously reads raw event strings from the kernel trace pipe.
+2. The `TraceReader` attempts to parse known syscall event lines (e.g., execve, fork, connect) into corresponding Pydantic models (`ExecveEvent`, `ForkEvent`, etc.). Unparsed lines are yielded as raw strings.
+3. Parsed event models (or raw strings if parsing fails) are passed to the `Aggregator`, which buffers them.
+4. A background scheduler triggers the report generation process at the configured interval.
+5. The reporting process retrieves a snapshot of buffered events (now structured models) from the `Aggregator`.
+6. A Level 1 `Cell` report is created from the event snapshot.
+7. The `Cell` is passed to the `ReportManager`.
+8. The `ReportManager` saves the `Cell` and checks if enough Cells exist to create a Level 2 `Block`. This process continues up the hierarchy (Daily, Weekly, Monthly).
+9. The `Reporter` can optionally save the initial `Cell` report to a JSON file and send it to OpenAI for analysis.
+10. Higher-level reports (Blocks, etc.) can also be configured for AI analysis via the `ReportManager` interacting with the `Reporter`.
 
 ## Project Structure
 
@@ -62,6 +63,7 @@ linux-edr/
 ├── linux_edr/                   # Main source code package
 │   ├── domain/                  # Core business logic
 │   │   └── models/              # Domain entities and value objects
+│   │       └── events/          # Pydantic models for specific syscall events
 │   ├── application/             # Application-specific business rules
 │   │   ├── services/            # Stateless operations
 │   │   └── use_cases/           # Business processes
@@ -71,12 +73,12 @@ linux-edr/
 │   │   └── controllers/         # Input adapters (CLI, API controllers)
 │   ├── app.py                   # Core application logic (legacy)
 │   ├── config.py                # Configuration management (legacy)
-│   ├── trace.py                 # Non-blocking trace reader (legacy)
-│   ├── aggregator.py            # Thread-safe event buffering (legacy)
+│   ├── trace.py                 # Non-blocking trace reader & parser
+│   ├── aggregator.py            # Thread-safe event buffering
 │   ├── summary.py               # Initial report generation (legacy)
-│   ├── reporter.py              # OpenAI integration (legacy)
+│   ├── reporter.py              # OpenAI integration & report output
 │   ├── report_manager.py        # Report management (legacy)
-│   ├── models.py                # Pydantic data models (legacy)
+│   ├── models.py                # Pydantic data models (legacy - to be removed/merged)
 │   └── cli.py                   # CLI interface (legacy)
 ├── tests/                       # Comprehensive test suite
 ├── docs/                        # Documentation source files

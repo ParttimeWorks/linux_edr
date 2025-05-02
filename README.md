@@ -66,7 +66,7 @@ This is useful for troubleshooting or understanding what data is being collected
 
 ## Data Structure
 
-Linux EDR groups execve events by process name and maintains the full command line for context:
+Linux EDR captures various syscall events and represents them using structured Pydantic models. Here's an example of an `ExecveEvent` within a report:
 
 ```json
 {
@@ -75,13 +75,29 @@ Linux EDR groups execve events by process name and maintains the full command li
   "window_end": "2023-01-01T12:00:00+00:00",
   "total": 150,
   "command_counts": {"ls": 50, "cat": 30, "bash": 70},
-  "process_events": {
-    "ls": ["ls -la /tmp", "ls /home", "ls -l /var/log"],
-    "cat": ["cat /etc/passwd", "cat /var/log/syslog"],
-    "bash": ["bash -c 'whoami'", "bash /tmp/script.sh"]
-  }
+  "events": [
+    {
+      "timestamp": "12345.67890",
+      "pid": 1001,
+      "command": "ls",
+      "args": ["-la", "/tmp"]
+    },
+    {
+      "timestamp": "12346.00000",
+      "pid": 1002,
+      "child_pid": 1003
+    },
+    {
+      "timestamp": "12347.11111",
+      "pid": 1004,
+      "fd": 3,
+      "address": "1.1.1.1:443"
+    }
+  ]
 }
 ```
+
+The previous grouping by process name (`process_events`) in Cell reports might change based on how these structured events are aggregated. The core reporting hierarchy remains.
 
 ## Configuration
 
@@ -229,11 +245,17 @@ linux-edr/
 │   ├── cli.py            # Typer-based CLI interface
 │   ├── app.py            # Core application logic
 │   ├── config.py         # Configuration management
-│   ├── trace.py          # Non-blocking trace reader
+│   ├── trace.py          # Non-blocking trace reader & parser
 │   ├── aggregator.py     # Thread-safe event buffering
-│   ├── summary.py        # Report generation
 │   ├── reporter.py       # OpenAI integration and output
 │   ├── report_manager.py # Hierarchical report handling
+│   ├── domain/
+│   │   └── models/
+│   │       └── events/   # Pydantic models for syscall events
+│   │           ├── base.py
+│   │           ├── execve.py
+│   │           ├── fork.py
+│   │           └── ... # other event types
 │   └── models.py         # Pydantic data models
 ├── tests/                # Comprehensive test suite
 ├── docs/                 # Documentation

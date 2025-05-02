@@ -20,7 +20,9 @@ FORK_PATTERN = re.compile(r"(\S+)\s+\[(\d+)\]\s+.*fork.*child_pid=(\d+)")
 CLONE_PATTERN = re.compile(r"(\S+)\s+\[(\d+)\]\s+.*clone.*child_pid=(\d+)\s+flags=(\S+)")
 CONNECT_PATTERN = re.compile(r"(\S+)\s+\[(\d+)\]\s+.*connect.*fd=(\d+)\s+addr=(.+)")
 
-from .domain.models.events import ExecveEvent, ForkEvent, CloneEvent, ConnectEvent, BaseSyscallEvent
+from .domain.models.events import (
+    ExecveEvent, ForkEvent, CloneEvent, ConnectEvent, BaseSyscallEvent, UnparsedEvent
+)
 
 class TraceReader:
     """
@@ -156,12 +158,15 @@ class TraceReader:
 
         return None
 
-    def __iter__(self) -> Generator[Union[str, BaseSyscallEvent], None, None]:
+    def __iter__(self) -> Generator[Union[BaseSyscallEvent, UnparsedEvent], None, None]:
         """
-        Iterate over lines from the trace pipe.
+        Iterate over events from the trace pipe.
+
+        Attempts to parse known syscall events into Pydantic models.
+        If a line cannot be parsed, it yields an `UnparsedEvent` model containing the raw line.
 
         Yields:
-            Lines from the trace pipe, one at a time
+            A `BaseSyscallEvent` subclass if parsed successfully, otherwise an `UnparsedEvent`.
         """
         if self.fd is None:
             logger.error("Cannot iterate: file descriptor is not open")
@@ -207,8 +212,13 @@ class TraceReader:
                                     continue
 
                                 parsed_evt = self._parse_line(line)
-                                # Yield the parsed object if recognized, else the raw line for backward-compat.
-                                yield parsed_evt if parsed_evt else line
+                                # Yield the parsed object if recognized, else yield an UnparsedEvent
+                                if parsed_evt:
+                                    yield parsed_evt
+                                else:
+                                    # Optionally log the unparsed line here if needed
+                                    # logger.debug(f"Unparsed trace line: {line}")
+                                    yield UnparsedEvent(raw_line=line)
                         except OSError as e:
                             if e.errno in (errno.EAGAIN, errno.EWOULDBLOCK):
                                 continue
