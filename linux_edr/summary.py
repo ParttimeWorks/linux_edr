@@ -21,8 +21,12 @@ def build_summary(
     now = datetime.now(timezone.utc)
     start = now - timedelta(minutes=window_minutes)
 
-    # Count occurrences of each command
-    counts = Counter(evt["command"] for evt in events)
+    # Count occurrences of each command, ignoring events without a command field (e.g., UnparsedEvent)
+    counts = Counter(
+        evt["command"]
+        for evt in events
+        if isinstance(evt, dict) and evt.get("command")
+    )
     proc_summary: Dict[str, int] = dict(counts)
 
     report_data = {

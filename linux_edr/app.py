@@ -11,7 +11,7 @@ from .reporter import Reporter
 from .config import Config
 from .report_manager import ReportManager
 from .models import Cell
-from .domain.models.events import BaseSyscallEvent, ExecveEvent
+from .domain.models.events import BaseSyscallEvent, ExecveEvent, UnparsedEvent
 
 
 def setup_logging(debug: bool = False) -> None:
@@ -327,12 +327,20 @@ class LinuxEDRApp:
         if self.verbose_debug:
             self._log_debug_event(evt)
 
-        # If the trace reader already produced a validated ExecveEvent model, buffer it directly.
         if isinstance(evt, BaseSyscallEvent):
+            # Parsed syscall event – store its dict representation.
             self.agg.add(evt.model_dump() if hasattr(evt, "model_dump") else evt.dict())
             return
-        else:
-            logging.warning(f"Invalid event type: {type(evt)}")
+
+        # Handle unparsed trace lines gracefully.
+        if isinstance(evt, UnparsedEvent):
+            # Optionally buffer raw lines for troubleshooting; they will be ignored by most
+            # downstream processing since they lack a "command" key.
+            self.agg.add({"raw_line": evt.raw_line})
+            return
+
+        # For truly unexpected types, log a warning once.
+        logging.warning(f"Invalid event type: {type(evt)}")
 
     def _log_debug_event(self, evt: BaseSyscallEvent) -> None:
         """

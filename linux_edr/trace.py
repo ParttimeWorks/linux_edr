@@ -5,7 +5,8 @@ import errno
 import logging
 import time
 import re
-from typing import Generator, Optional, Union
+import mmap
+from typing import Generator, Optional, Union, Tuple, List
 
 # Default path to the kernel's trace_pipe
 TRACE_PATH = "/sys/kernel/tracing/trace_pipe"
@@ -23,6 +24,79 @@ CONNECT_PATTERN = re.compile(r"(\S+)\s+\[(\d+)\]\s+.*connect.*fd=(\d+)\s+addr=(.
 from .domain.models.events import (
     ExecveEvent, ForkEvent, CloneEvent, ConnectEvent, BaseSyscallEvent, UnparsedEvent
 )
+
+# ----------------------- Helpers to resolve execve pointers -----------------------
+
+def _read_string_from_mem(pid: int, address: int, max_len: int = 4096) -> Optional[str]:
+    """Attempt to read a NUL-terminated string from another process's memory.
+
+    Requires sufficient privileges (typically root / CAP_SYS_PTRACE).
+
+    Args:
+        pid: Process ID whose memory to read.
+        address: Address of the string.
+        max_len: Maximum number of bytes to read.
+
+    Returns:
+        Decoded string if successful, otherwise None.
+    """
+    try:
+        with open(f"/proc/{pid}/mem", "rb", buffering=0) as mem_fd:
+            mem_fd.seek(address)
+            data = mem_fd.read(max_len)
+
+        if not data:
+            return None
+
+        nul_idx = data.find(b"\x00")
+        if nul_idx != -1:
+            data = data[:nul_idx]
+
+        return data.decode("utf-8", errors="replace")
+    except Exception:
+        return None
+
+def _resolve_execve_cmd(pid: int, filename_ptr: str) -> Tuple[str, List[str]]:
+    """Resolve the filename and arguments for an execve trace when only pointers are present.
+
+    Strategy:
+        1. Attempt to read the filename string via /proc/<pid>/mem using the supplied pointer.
+        2. Fallback to /proc/<pid>/cmdline which usually contains argv contents.
+
+    Args:
+        pid: The PID from the trace event.
+        filename_ptr: Hex string pointer to filename (may include trailing comma).
+
+    Returns:
+        Tuple of (command, args list). Unknown values will be "<unknown>" or empty list.
+    """
+    # Clean pointer string and convert to int
+    filename_ptr = filename_ptr.strip().rstrip(",")
+    cmd: str = "<unknown>"
+    args: List[str] = []
+
+    try:
+        address = int(filename_ptr, 16)
+        if address:
+            if (s := _read_string_from_mem(pid, address)):
+                cmd = os.path.basename(s)
+    except Exception:
+        pass
+
+    # If we still don't have a usable cmd, fallback to cmdline
+    if cmd == "<unknown>":
+        try:
+            with open(f"/proc/{pid}/cmdline", "rb") as f:
+                data = f.read()
+            if data:
+                parts = data.split(b"\x00")
+                if parts:
+                    cmd = os.path.basename(parts[0].decode("utf-8", errors="replace"))
+                    args = [p.decode("utf-8", errors="replace") for p in parts[1:] if p]
+        except Exception:
+            pass
+
+    return cmd, args
 
 class TraceReader:
     """
@@ -138,8 +212,18 @@ class TraceReader:
             ts, pid_str, cmd_args = m.groups()
             pid = int(pid_str)
             parts = cmd_args.split() if cmd_args else []
-            if parts:
-                return ExecveEvent(timestamp=ts, pid=pid, command=parts[0].strip('"'), args=parts[1:])
+            if not parts:
+                return None
+
+            # Typical trace contents: "filename: 7ffcb..., argv: 7ff..., envp: ..."
+            if parts[0].startswith("filename:"):
+                # Extract pointer after "filename:" which is at index 1
+                filename_ptr = parts[1] if len(parts) > 1 else "0"
+                command, argv = _resolve_execve_cmd(pid, filename_ptr)
+                return ExecveEvent(timestamp=ts, pid=pid, command=command, args=argv)
+
+            # Fallback: treat the first token as command as before
+            return ExecveEvent(timestamp=ts, pid=pid, command=parts[0].strip('"'), args=parts[1:])
 
         # fork
         if m := FORK_PATTERN.search(line):
