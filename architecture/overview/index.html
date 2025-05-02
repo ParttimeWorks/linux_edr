@@ -1453,7 +1453,7 @@
 <h2 id="core-components">Core Components<a class="headerlink" href="#core-components" title="Permanent link">&para;</a></h2>
 <h3 id="domain-layer">Domain Layer<a class="headerlink" href="#domain-layer" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Models</strong>: Defines the structure of events and reports using Pydantic, ensuring data consistency and validation.</li>
+<li><strong>Models</strong>: Defines the structure of events and reports using Pydantic, ensuring data consistency and validation. Includes a base <code>BaseSyscallEvent</code> and specific models for traced syscalls (e.g., <code>ExecveEvent</code>, <code>ForkEvent</code>).</li>
 </ul>
 <h3 id="application-layer">Application Layer<a class="headerlink" href="#application-layer" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1481,11 +1481,12 @@
 </ul>
 <h2 id="data-flow">Data Flow<a class="headerlink" href="#data-flow" title="Permanent link">&para;</a></h2>
 <ol>
-<li>The <code>TraceReader</code> continuously reads <code>execve</code> events from the kernel trace pipe.</li>
-<li>Events are passed to the <code>Aggregator</code>, which buffers them in a thread-safe manner.</li>
-<li>A background scheduler triggers the appropriate use case at the configured interval.</li>
-<li>The use case retrieves a snapshot of events from the <code>Aggregator</code>.</li>
-<li>The service creates a Level 1 <code>Cell</code> report from the event snapshot.</li>
+<li>The <code>TraceReader</code> continuously reads raw event strings from the kernel trace pipe.</li>
+<li>The <code>TraceReader</code> attempts to parse known syscall event lines (e.g., execve, fork, connect) into corresponding Pydantic models (<code>ExecveEvent</code>, <code>ForkEvent</code>, etc.). Unparsed lines are yielded as raw strings.</li>
+<li>Parsed event models (or raw strings if parsing fails) are passed to the <code>Aggregator</code>, which buffers them.</li>
+<li>A background scheduler triggers the report generation process at the configured interval.</li>
+<li>The reporting process retrieves a snapshot of buffered events (now structured models) from the <code>Aggregator</code>.</li>
+<li>A Level 1 <code>Cell</code> report is created from the event snapshot.</li>
 <li>The <code>Cell</code> is passed to the <code>ReportManager</code>.</li>
 <li>The <code>ReportManager</code> saves the <code>Cell</code> and checks if enough Cells exist to create a Level 2 <code>Block</code>. This process continues up the hierarchy (Daily, Weekly, Monthly).</li>
 <li>The <code>Reporter</code> can optionally save the initial <code>Cell</code> report to a JSON file and send it to OpenAI for analysis.</li>
@@ -1496,32 +1497,33 @@
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── linux_edr/                   # Main source code package
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│   ├── domain/                  # Core business logic
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│   │   └── models/              # Domain entities and value objects
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│   ├── application/             # Application-specific business rules
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│   │   ├── services/            # Stateless operations
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│   │   └── use_cases/           # Business processes
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│   ├── infrastructure/          # External systems implementations
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│   │   └── repositories/        # Data access implementations
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│   ├── interfaces/              # Entry points to the system
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>│   │   └── controllers/         # Input adapters (CLI, API controllers)
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>│   ├── app.py                   # Core application logic (legacy)
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>│   ├── config.py                # Configuration management (legacy)
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>│   ├── trace.py                 # Non-blocking trace reader (legacy)
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>│   ├── aggregator.py            # Thread-safe event buffering (legacy)
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>│   ├── summary.py               # Initial report generation (legacy)
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>│   ├── reporter.py              # OpenAI integration (legacy)
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>│   ├── report_manager.py        # Report management (legacy)
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>│   ├── models.py                # Pydantic data models (legacy)
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>│   └── cli.py                   # CLI interface (legacy)
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>├── tests/                       # Comprehensive test suite
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>├── docs/                        # Documentation source files
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>├── .github/                     # GitHub Actions workflows
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>│   └── workflows/
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>│       └── docs.yml             # Documentation deployment workflow
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>├── linux-edr.service            # Systemd service definition
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>├── pyproject.toml               # Project metadata and dependencies
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>├── mkdocs.yml                   # MkDocs configuration
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>├── PRIVACY.md                   # Privacy policy
-<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>└── README.md                    # Repository README
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│   │       └── events/          # Pydantic models for specific syscall events
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│   ├── application/             # Application-specific business rules
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│   │   ├── services/            # Stateless operations
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│   │   └── use_cases/           # Business processes
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│   ├── infrastructure/          # External systems implementations
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│   │   └── repositories/        # Data access implementations
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>│   ├── interfaces/              # Entry points to the system
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>│   │   └── controllers/         # Input adapters (CLI, API controllers)
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>│   ├── app.py                   # Core application logic (legacy)
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>│   ├── config.py                # Configuration management (legacy)
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>│   ├── trace.py                 # Non-blocking trace reader &amp; parser
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>│   ├── aggregator.py            # Thread-safe event buffering
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>│   ├── summary.py               # Initial report generation (legacy)
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>│   ├── reporter.py              # OpenAI integration &amp; report output
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>│   ├── report_manager.py        # Report management (legacy)
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>│   ├── models.py                # Pydantic data models (legacy - to be removed/merged)
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>│   └── cli.py                   # CLI interface (legacy)
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>├── tests/                       # Comprehensive test suite
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>├── docs/                        # Documentation source files
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>├── .github/                     # GitHub Actions workflows
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>│   └── workflows/
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>│       └── docs.yml             # Documentation deployment workflow
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>├── linux-edr.service            # Systemd service definition
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>├── pyproject.toml               # Project metadata and dependencies
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>├── mkdocs.yml                   # MkDocs configuration
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>├── PRIVACY.md                   # Privacy policy
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>└── README.md                    # Repository README
 </code></pre></div>
 
 
@@ -1545,7 +1547,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 1, 2025 16:08:28">May 1, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 2, 2025 05:38:10">May 2, 2025</span>
   </span>
 
     
