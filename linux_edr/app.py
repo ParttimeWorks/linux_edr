@@ -332,8 +332,30 @@ class LinuxEDRApp:
             if self.verbose_debug:
                 self._log_parsed_event(evt)
 
-        # Add event to aggregator
-        self.agg.add(evt)
+        # If event is already a dict (e.g., when injected by tests or future extensions),
+        # we assume it's been validated and directly buffer it.
+        if isinstance(evt, dict):
+            self.agg.add(evt)
+            return
+
+        # Otherwise, treat it as raw text from trace_pipe and try to parse/validate.
+        parsed = parse_execve(evt)
+
+        if not parsed:
+            # Not an execve line – skip buffering
+            return
+
+        # Validate with Pydantic schema (ensures correct types/structure)
+        try:
+            from .domain.models.event_models import ExecveEvent as ExecveEventModel  # Local import to avoid cycles
+
+            model_event = ExecveEventModel.from_namedtuple(parsed)
+
+            # Buffer as plain dict (safer for serialization & downstream processing)
+            self.agg.add(model_event.model_dump())
+        except Exception as e:
+            # Any validation or conversion error – log and drop the event
+            logging.warning("Invalid event skipped: %s", e)
 
     def _log_parsed_event(self, evt: str) -> None:
         """

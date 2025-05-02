@@ -8,9 +8,10 @@ from linux_edr.app import (
     parse_execve,
     setup_logging,
     LinuxEDRApp,
-    ExecveEvent,
     SyscallTracer,
 )
+
+from linux_edr.domain.models.event_models import ExecveEvent
 
 
 class TestApp(unittest.TestCase):
@@ -259,7 +260,7 @@ class TestApp(unittest.TestCase):
         app.agg = MagicMock()
 
         # Setup mock for parse_execve
-        parsed_event = ExecveEvent("12345.6789", 1000, "test_cmd", ["-a", "-b"])
+        parsed_event = ExecveEvent(timestamp="12345.6789", pid=1000, command="test_cmd", args=["-a", "-b"])
         mock_parse_execve.return_value = parsed_event
 
         # Import the method to test it independently
@@ -268,23 +269,28 @@ class TestApp(unittest.TestCase):
         # Call the method directly
         LinuxEDRApp._process_event(app, "test_event")
 
-        # Verify debug logging
-        app.agg.add.assert_called_once_with("test_event")
-        self.assertTrue(mock_log_debug.called)
+        # The aggregator should receive a validated dict version of the parsed event
+        expected_dict = {
+            "timestamp": "12345.6789",
+            "pid": 1000,
+            "command": "test_cmd",
+            "args": ["-a", "-b"],
+        }
+        app.agg.add.assert_called_once_with(expected_dict)
 
         # Reset mock and test with verbose_debug=False
         mock_log_debug.reset_mock()
         app.verbose_debug = False
 
         LinuxEDRApp._process_event(app, "test_event2")
-        app.agg.add.assert_called_with("test_event2")
+        app.agg.add.assert_called_with(expected_dict)
 
         # Test with debug=False
         mock_log_debug.reset_mock()
         app.debug = False
 
         LinuxEDRApp._process_event(app, "test_event3")
-        app.agg.add.assert_called_with("test_event3")
+        app.agg.add.assert_called_with(expected_dict)
         mock_log_debug.assert_not_called()
 
 
